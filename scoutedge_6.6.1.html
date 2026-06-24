@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050c15">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ScoutEdge">
+<title>ScoutEdge</title>
+<style>
+:root {
+  --bg:#050c15;--bg2:#080f1a;--card:#0b1624;--border:#1a3356;
+  --accent:#00cfff;--text:#ddeeff;--muted:#4a8aaf;--dim:#2a5a7a;
+  --win:#00cfff;--draw:#f59e0b;--lose:#a78bfa;--green:#34d399;--red:#f87171;--orange:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-serif;min-height:100vh;font-size:14px}
+
+.header{background:linear-gradient(90deg,var(--bg),#091525,var(--bg));border-bottom:1px solid var(--border);padding:14px 16px 0;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;gap:8px;margin-bottom:12px;max-width:700px;margin-left:auto;margin-right:auto}
+.logo-icon{color:var(--accent);font-size:18px}
+.logo-text{font-size:17px;font-weight:900;color:white;letter-spacing:-0.5px}
+.badge{font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(0,207,255,.1);color:var(--accent);border:1px solid rgba(0,207,255,.2);font-family:monospace}
+.badge-live{background:rgba(52,211,153,.1);color:var(--green);border-color:rgba(52,211,153,.2);display:none}
+.tabs{display:flex;gap:4px;max-width:700px;margin:0 auto;overflow-x:auto;padding-bottom:1px}
+.tab{padding:8px 14px;border-radius:8px 8px 0 0;font-size:11px;font-weight:700;border:none;cursor:pointer;transition:all .2s;background:transparent;color:var(--dim);white-space:nowrap}
+.tab.active{background:rgba(0,207,255,.12);color:var(--accent);border:1px solid rgba(0,207,255,.25);border-bottom:none}
+.tab:hover:not(.active){color:var(--muted)}
+
+.main{max-width:700px;margin:0 auto;padding:20px 16px 60px}
+.section{display:none}.section.active{display:block}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px}
+.card-title{font-size:10px;font-weight:900;color:var(--accent);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+
+label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input::placeholder,textarea::placeholder{color:var(--dim)}
+textarea{resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+
+.btn{width:100%;padding:12px;border-radius:12px;font-size:13px;font-weight:900;border:none;cursor:pointer;transition:all .2s;letter-spacing:.03em}
+.btn-primary{background:var(--accent);color:var(--bg)}.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-outline{background:rgba(0,207,255,.08);color:var(--accent);border:1px solid rgba(0,207,255,.25)}.btn-outline:hover{background:rgba(0,207,255,.15)}
+.btn-sm{width:auto;padding:7px 14px;font-size:11px;border-radius:8px}
+.btn-ghost{background:var(--bg2);color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{border-color:rgba(0,207,255,.4);color:var(--accent)}
+.btn-row{display:flex;gap:8px;margin-top:4px}
+
+.sport-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.sport-pill{padding:8px 16px;border-radius:12px;font-size:13px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .2s}
+.sport-pill.active{background:rgba(0,207,255,.12);border-color:var(--accent);color:var(--accent)}
+.sport-pill:hover:not(.active){border-color:rgba(0,207,255,.4)}
+
+.mode-pills{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.mode-pill{padding:7px 14px;border-radius:10px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .2s}
+.mode-pill.active{background:rgba(0,207,255,.12);border-color:var(--accent);color:var(--accent)}
+
+/* VENUE SELECTOR */
+.venue-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.venue-pill{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--bg2);color:var(--muted);cursor:pointer;transition:all .2s}
+.venue-pill.active{border-color:var(--accent);color:var(--accent);background:rgba(0,207,255,.1)}
+.venue-note{font-size:10px;color:var(--dim);margin-top:6px;line-height:1.5}
+
+.bar-row{margin-bottom:10px}
+.bar-label{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.bar-label span:first-child{color:var(--muted);font-weight:600}
+.bar-label span:last-child{color:white;font-weight:700}
+.bar-track{height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .7s ease}
+
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.score-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center}
+.score-card.top{border-color:var(--accent)}
+.score-card .top-label{font-size:9px;color:var(--accent);font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}
+.score-card .score-val{font-size:20px;font-weight:900;color:white}
+.score-card .score-pct{font-size:11px;color:var(--muted);margin-top:2px}
+
+.matrix-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:10px}
+th,td{padding:5px 6px;text-align:center}
+th{color:var(--muted);font-weight:700}
+
+.stat-boxes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-boxes-3{grid-template-columns:1fr 1fr 1fr}
+.stat-boxes-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.stat-box-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.stat-box-val{font-size:20px;font-weight:900;color:white}
+.stat-box-sub{font-size:10px;color:var(--dim);margin-top:2px}
+
+.match-item{display:flex;align-items:center;padding:9px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .2s;font-size:12px;background:var(--bg2)}
+.match-item:hover,.match-item.selected{border-color:var(--accent);background:rgba(0,207,255,.06)}
+.match-teams{flex:1;font-weight:600}
+.match-teams .home{color:white}
+.match-teams .vs{color:var(--dim);margin:0 6px}
+.match-teams .away{color:white}
+.match-date{font-size:10px;color:var(--dim)}
+
+.odds-table{width:100%;border-collapse:collapse;font-size:11px}
+.odds-table th{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:0 8px 8px;text-align:center}
+.odds-table th:first-child{text-align:left}
+.odds-table td{padding:8px;text-align:center;border-top:1px solid var(--border)}
+.odds-table td:first-child{text-align:left;color:var(--text);font-weight:600}
+.odds-home{color:var(--win);font-weight:700}
+.odds-draw{color:var(--draw);font-weight:700}
+.odds-away{color:var(--lose);font-weight:700}
+
+.runner-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.hr-result-item{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px}
+.hr-rank{font-size:10px;font-weight:900;color:var(--accent);width:20px;flex-shrink:0}
+.hr-name{font-size:13px;font-weight:700;color:white}
+.hr-form{font-size:10px;color:var(--dim)}
+.hr-right{text-align:right;flex-shrink:0}
+.hr-dec{font-size:12px;font-weight:700;color:white}
+.hr-fair{font-size:10px;color:var(--muted)}
+.hr-value{font-size:10px;font-weight:700}
+.value-yes{color:var(--green)}.value-no{color:var(--red)}
+
+/* SCORELINE RESULTS */
+.score-result-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.score-result-item.best{border-color:var(--accent)}
+.score-result-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.score-result-score{font-size:18px;font-weight:900;color:white}
+.score-result-odds{font-size:13px;font-weight:700;color:var(--accent)}
+.score-result-diff{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700}
+.diff-great{background:rgba(52,211,153,.15);color:var(--green)}
+.diff-ok{background:rgba(245,158,11,.15);color:var(--draw)}
+.diff-poor{background:rgba(248,113,113,.15);color:var(--red)}
+.score-result-meta{font-size:10px;color:var(--dim)}
+
+.double-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.double-item.best{border-color:var(--accent)}
+.double-scores{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.double-score-pill{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:14px;font-weight:900;color:white}
+.double-match-label{font-size:9px;color:var(--dim);margin-bottom:2px}
+.double-plus{color:var(--dim);font-size:14px;font-weight:900}
+.double-meta{display:flex;justify-content:space-between;align-items:center}
+.double-odds-info{font-size:11px;color:var(--muted)}
+
+/* RANGE INDICATOR */
+.range-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px}
+.range-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.range-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.range-val{font-weight:700;color:var(--accent)}
+.range-arrow{color:var(--dim)}
+.range-note{font-size:10px;color:var(--orange);margin-top:6px}
+
+.ai-out{margin-top:12px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px}
+.ai-out-title{font-size:9px;font-weight:900;color:var(--accent);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.ai-out-text{font-size:12px;color:#aaccdd;white-space:pre-wrap;line-height:1.6}
+
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px}
+.dropzone:hover,.dropzone.drag{border-color:rgba(0,207,255,.5)}
+.dropzone-icon{font-size:24px;margin-bottom:6px}
+.dropzone-text{font-size:12px;color:var(--muted)}
+.dropzone-sub{font-size:10px;color:var(--dim);margin-top:3px}
+.dropzone img{max-height:120px;border-radius:8px;object-fit:contain}
+
+.match-block{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.match-block-title{font-size:11px;font-weight:900;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+
+.notice{font-size:11px;color:var(--dim);line-height:1.5}
+.notice strong{color:var(--muted)}
+.hint{font-size:10px;color:var(--dim);margin-top:6px}
+.err{color:var(--red);font-size:11px;margin-top:6px}
+.spinner{display:flex;justify-content:center;padding:16px}
+.spin{width:22px;height:22px;border:2px solid rgba(0,207,255,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.section-sub{font-size:11px;color:var(--dim);margin-bottom:12px;line-height:1.5}
+
+.setup-step{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.setup-step-title{font-size:13px;font-weight:700;color:white;margin-bottom:8px}
+.setup-step ol{padding-left:16px}
+.setup-step li{font-size:12px;color:#aaccdd;margin-bottom:4px;line-height:1.5}
+.setup-note{font-size:10px;color:var(--dim);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.save-toast{display:none;font-size:11px;color:var(--green);text-align:center;margin-top:8px;font-weight:700}
+
+.sub-tabs{display:flex;gap:6px;margin-bottom:16px}
+.sub-tab{flex:1;padding:10px;border-radius:10px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .2s;text-align:center}
+.sub-tab.active{background:rgba(0,207,255,.12);border-color:var(--accent);color:var(--accent)}
+
+@media(max-width:480px){
+  .grid2{grid-template-columns:1fr}
+  .grid3{grid-template-columns:1fr 1fr}
+  .grid4{grid-template-columns:1fr 1fr}
+  .stat-boxes-3{grid-template-columns:1fr 1fr}
+  .stat-boxes-4{grid-template-columns:1fr 1fr}
+  .score-grid{grid-template-columns:1fr 1fr}
+  .runner-row{grid-template-columns:1fr 1fr}
+}
+
+/* ── DAILY TIPS ── */
+.tips-progress{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.tips-progress-title{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.tips-progress-text{font-size:12px;color:var(--muted)}
+.tips-progress-bar-wrap{height:4px;background:var(--bg2);border-radius:2px;margin-top:10px;overflow:hidden}
+.tips-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.tips-empty{text-align:center;padding:40px 20px}
+.tips-empty-icon{font-size:48px;margin-bottom:12px}
+.tips-empty-title{font-size:16px;font-weight:700;color:white;margin-bottom:6px}
+.tips-empty-sub{font-size:12px;color:var(--dim);line-height:1.5}
+.tip-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;transition:border-color .2s}
+.tip-card:hover{border-color:rgba(0,207,255,.3)}
+.tip-rank{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-size:11px;font-weight:900;margin-bottom:10px}
+.tip-rank-1{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.tip-rank-2{background:linear-gradient(135deg,#94a3b8,#64748b);color:#000}
+.tip-rank-3{background:linear-gradient(135deg,#fb923c,#ea580c);color:#000}
+.tip-rank-n{background:rgba(0,207,255,.1);color:var(--accent);border:1px solid rgba(0,207,255,.2)}
+.tip-competition{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}
+.tip-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tip-team{text-align:center;flex:1}
+.tip-team-name{font-size:13px;font-weight:700;color:white;line-height:1.3}
+.tip-vs{font-size:11px;color:var(--dim);padding:0 8px;flex-shrink:0}
+.tip-scoreline{text-align:center;margin-bottom:12px}
+.tip-score-val{font-size:32px;font-weight:900;color:white;letter-spacing:2px}
+.tip-score-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.tip-confidence{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tip-conf-label{font-size:10px;color:var(--muted);font-weight:600}
+.tip-conf-bar-wrap{flex:1;margin:0 10px;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.tip-conf-bar{height:100%;border-radius:3px}
+.tip-conf-pct{font-size:11px;font-weight:700;color:white}
+.tip-meta-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tip-tag{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:700}
+.tip-tag-venue{background:rgba(0,207,255,.1);color:var(--accent);border:1px solid rgba(0,207,255,.15)}
+.tip-tag-injury{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.15)}
+.tip-tag-source{background:rgba(74,138,175,.1);color:var(--muted);border:1px solid rgba(74,138,175,.15)}
+.tip-expand-btn{width:100%;padding:8px;border-radius:8px;font-size:11px;font-weight:700;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;margin-top:8px;transition:all .2s}
+.tip-expand-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tip-detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.tip-detail-text{font-size:11px;color:#aaccdd;line-height:1.6;white-space:pre-wrap}
+.tips-date{font-size:12px;color:var(--muted);font-weight:600}
+.tips-meta{font-size:10px;color:var(--dim);margin-top:2px}
+.conf-high{color:var(--green)}.conf-med{color:var(--draw)}.conf-low{color:var(--orange)}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <span class="logo-icon">◈</span>
+    <span class="logo-text">ScoutEdge</span>
+    <span class="badge">v6.6.1</span>
+    <span class="badge badge-live" id="liveBadge">LIVE</span>
+  </div>
+  <div class="tabs">
+    <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
+    <button class="tab active" onclick="switchTab('predictor',this)">⚽ Predictor</button>
+    <button class="tab" onclick="switchTab('odds',this)">🔍 Odds Analyser</button>
+    <button class="tab" onclick="switchTab('settings',this)">⚙️ Settings</button>
+  </div>
+</div>
+
+<div class="main">
+
+
+<!-- ══════════════════════════════════════════════════════════ DAILY TIPS -->
+<div id="tab-tips" class="section">
+  <div class="card">
+    <div class="card-title">🔥 Today's Top 10 Predicted Scorelines</div>
+    <p class="section-sub">AI scans every league worldwide, runs Poisson on live team stats, factors in injuries and venue type, then ranks the 10 most confident scoreline predictions for today.</p>
+    <div class="grid2" style="margin-bottom:12px">
+      <div><label>League Filter</label><select id="tipsLeagueFilter"><option value="all">All Leagues Worldwide</option><option value="major">Top Leagues Only</option><option value="europe">European Leagues</option></select></div>
+      <div><label>Confidence Level</label><select id="tipsConfidence"><option value="any">Show All</option><option value="med" selected>Medium+</option><option value="high">High Only</option></select></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="todayOnlyToggle" style="width:auto">
+      <span style="font-size:12px;color:var(--dim)">Today only <span style="color:var(--muted);font-size:11px">— uncheck to include tomorrow's fixtures</span></span>
+    </label>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="tipsFetchBtn" onclick="fetchDailyTips()">🔥 Generate Today's Tips</button>
+      <button class="btn btn-ghost" id="tipsCancelBtn" onclick="cancelDailyTips()" style="display:none;flex:0 0 auto;width:auto;padding:12px 18px">✕ Cancel</button>
+    </div>
+    <p class="hint" id="tipsApiHint" style="display:none">⚠️ Add your API-Football key in ⚙️ Settings to enable this feature</p>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer">
+      <input type="checkbox" id="tipsDebugToggle" style="width:auto" onchange="window.SE_DEBUG_ENABLED=this.checked">
+      <span style="font-size:11px;color:var(--dim)">Show raw API debug data (for troubleshooting)</span>
+    </label>
+  </div>
+  <div id="tipsProgress" style="display:none" class="tips-progress">
+    <div class="tips-progress-title" id="tipsProgressTitle">Scanning leagues…</div>
+    <div class="tips-progress-text" id="tipsProgressText">Fetching fixtures worldwide</div>
+    <div class="tips-progress-bar-wrap"><div class="tips-progress-bar" id="tipsProgressBar" style="width:0%"></div></div>
+  </div>
+  <div id="tipsErr" class="err" style="margin-bottom:12px"></div>
+  <div id="tipsDebugPanel" style="display:none" class="card">
+    <div class="card-title">🔧 Debug — Raw API Response (First Match Attempted)</div>
+    <div id="tipsDebugContent" style="font-size:10px;color:#aaccdd;white-space:pre-wrap;line-height:1.5;max-height:400px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:monospace"></div>
+  </div>
+  <div id="tipsList"></div>
+  <div id="tipsEmpty" class="tips-empty" style="display:none">
+    <div class="tips-empty-icon">📭</div>
+    <div class="tips-empty-title">No matches found today</div>
+    <div class="tips-empty-sub">No fixtures scheduled for your selected filter today. Try "All Leagues Worldwide" or check back tomorrow.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ PREDICTOR ═══════════════════ -->
+<div id="tab-predictor" class="section active">
+
+  <div class="card">
+    <div class="card-title">Sport</div>
+    <div class="sport-pills">
+      <button class="sport-pill active" onclick="setSport('football',this)">⚽ Football</button>
+      <button class="sport-pill" onclick="setSport('basketball',this)">🏀 Basketball</button>
+      <button class="sport-pill" onclick="setSport('horseracing',this)">🏇 Horse Racing</button>
+    </div>
+    <p class="hint" id="sportHint">Free data: football-data.org · FBref.com · Understat.com</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Competition / League</div>
+    <div class="field"><select id="leagueSelect" onchange="onLeagueChange()"></select></div>
+    <button class="btn btn-outline btn-sm" id="loadMatchesBtn" onclick="loadMatches()" style="display:none">📅 Load Upcoming Matches</button>
+    <p class="hint" id="fdHint" style="display:none">Add your football-data.org key in ⚙️ Settings to auto-load matches</p>
+    <div id="matchErr" class="err"></div>
+    <div id="matchList" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card" id="liveOddsCard" style="display:none">
+    <div class="card-title">Live Odds — Multiple Bookmakers</div>
+    <div id="liveOddsContent"></div>
+  </div>
+  <button class="btn btn-outline" id="fetchOddsBtn" onclick="fetchOddsManual()" style="display:none;margin-bottom:14px">📊 Fetch Live Odds</button>
+
+  <div id="footballSection">
+    <div class="card">
+      <div class="card-title">Teams</div>
+      <div class="grid2">
+        <div class="field"><label>Home Team</label><input type="text" id="homeTeam" placeholder="e.g. Arsenal"></div>
+        <div class="field"><label>Away Team</label><input type="text" id="awayTeam" placeholder="e.g. Chelsea"></div>
+      </div>
+    </div>
+
+    <!-- VENUE -->
+    <div class="card">
+      <div class="card-title">Venue Type</div>
+      <p class="section-sub">Affects home advantage calculation. Neutral venues (World Cup, finals) remove the home team boost.</p>
+      <div class="venue-pills">
+        <button class="venue-pill active" onclick="setVenue('home',this)" id="vHome">🏟️ Home / Away</button>
+        <button class="venue-pill" onclick="setVenue('neutral',this)" id="vNeutral">⚖️ Neutral Venue</button>
+        <button class="venue-pill" onclick="setVenue('nearneutral',this)" id="vNear">🔀 Near-Neutral</button>
+      </div>
+      <p class="venue-note" id="venueNote">Standard home advantage applied — home team gets an attacking boost and defensive reduction.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Season Statistics</div>
+      <div class="grid2">
+        <div>
+          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px" id="homeSLabel">Home Team</p>
+          <div class="field"><label id="atkLabel">Avg Goals Scored (Home)</label><input type="number" step="0.01" id="homeAttack" placeholder="e.g. 1.8"></div>
+          <div class="field"><label id="defLabel">Avg Goals Conceded (Home)</label><input type="number" step="0.01" id="homeDefense" placeholder="e.g. 1.1"></div>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px" id="awaySLabel">Away Team</p>
+          <div class="field"><label id="atkLabelA">Avg Goals Scored (Away)</label><input type="number" step="0.01" id="awayAttack" placeholder="e.g. 1.3"></div>
+          <div class="field"><label id="defLabelA">Avg Goals Conceded (Away)</label><input type="number" step="0.01" id="awayDefense" placeholder="e.g. 1.4"></div>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="grid2">
+        <div class="field"><label id="lgHomeLabel">League Avg Goals (Home)</label><input type="number" step="0.01" id="lgHome" placeholder="Default: 1.5"></div>
+        <div class="field"><label id="lgAwayLabel">League Avg Goals (Away)</label><input type="number" step="0.01" id="lgAway" placeholder="Default: 1.1"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Manual Adjustments (%)</div>
+      <p class="section-sub">Fine-tune for injuries, suspensions, weather. Positive = boost · Negative = weaken</p>
+      <div class="grid2">
+        <div>
+          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px" id="homeAdjLabel">Home</p>
+          <div class="field"><label>Attack Adj %</label><input type="number" step="1" id="homeAtkAdj" value="0"></div>
+          <div class="field"><label>Defense Weakness %</label><input type="number" step="1" id="homeDefAdj" value="0"></div>
+        </div>
+        <div>
+          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px" id="awayAdjLabel">Away</p>
+          <div class="field"><label>Attack Adj %</label><input type="number" step="1" id="awayAtkAdj" value="0"></div>
+          <div class="field"><label>Defense Weakness %</label><input type="number" step="1" id="awayDefAdj" value="0"></div>
+        </div>
+      </div>
+      <div class="field"><label>Notes (injuries, suspensions, weather…)</label><textarea id="predNotes" rows="2" placeholder="e.g. Home striker out injured, away team on 3-game winning run…"></textarea></div>
+    </div>
+  </div>
+
+  <div id="hrSection" style="display:none">
+    <div class="card">
+      <div class="card-title">Runners & Odds</div>
+      <p class="section-sub">Any format: decimal (3.5) · fractional (5/2) · American (+150)</p>
+      <div style="font-size:10px;color:var(--dim);display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:4px;padding:0 2px"><span>Horse Name</span><span>Odds</span><span>Form</span></div>
+      <div id="runnerRows"></div>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="addRunner()">+ Runner</button><button class="btn btn-ghost btn-sm" onclick="removeRunner()">− Remove</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">AI Context Analyser</div>
+    <p class="section-sub">Upload a screenshot or paste a stats URL — AI extracts prediction factors automatically.</p>
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('imgInput').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+      <div id="dropContent"><div class="dropzone-icon">📸</div><div class="dropzone-text">Drop image or tap to upload</div><div class="dropzone-sub">Screenshots from BBC Sport, FBref, Racing Post, Google…</div></div>
+    </div>
+    <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="handleImgFile(event)">
+    <div class="field"><input type="text" id="urlInput" placeholder="Or paste a URL (FBref, Racing Post, Understat…)" oninput="updateAnalyseBtn()"></div>
+    <button class="btn btn-outline" id="analyseBtn" onclick="analyseContext()" disabled>Analyse with AI</button>
+    <div id="aiErr" class="err"></div>
+    <div id="aiOut" style="display:none" class="ai-out"><div class="ai-out-title">AI Analysis</div><div class="ai-out-text" id="aiOutText"></div></div>
+  </div>
+
+  <div id="predErr" class="err" style="text-align:center;margin-bottom:10px"></div>
+  <div class="btn-row" style="margin-bottom:14px">
+    <button class="btn btn-primary" onclick="calculate()" id="calcBtn">⚽ Calculate</button>
+    <button class="btn btn-ghost btn-sm" onclick="resetPredictor()" id="resetBtn" style="display:none">Reset</button>
+  </div>
+
+  <div id="predResults" style="display:none">
+    <div class="card" id="venueIndicator" style="display:none">
+      <div class="card-title">Venue Adjustment Applied</div>
+      <p class="section-sub" id="venueIndicatorText"></p>
+    </div>
+    <div class="card">
+      <div class="card-title" id="expectedTitle">Expected Goals</div>
+      <div class="stat-boxes">
+        <div class="stat-box"><div class="stat-box-label" id="homeLambdaLabel">Home</div><div class="stat-box-val" id="homeLambda">—</div></div>
+        <div class="stat-box"><div class="stat-box-label" id="awayLambdaLabel">Away</div><div class="stat-box-val" id="awayLambda">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Match Outcome Probabilities</div>
+      <div class="bar-row"><div class="bar-label"><span id="hwLabel">Home Win</span><span id="hwPct">—</span></div><div class="bar-track"><div class="bar-fill" id="hwBar" style="background:var(--win)"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Draw</span><span id="drawPct">—</span></div><div class="bar-track"><div class="bar-fill" id="drawBar" style="background:var(--draw)"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span id="awLabel">Away Win</span><span id="awPct">—</span></div><div class="bar-track"><div class="bar-fill" id="awBar" style="background:var(--lose)"></div></div></div>
+    </div>
+    <div class="card"><div class="card-title">Most Likely Scorelines</div><div class="score-grid" id="scoreGrid"></div></div>
+    <div class="card"><div class="card-title">Full Probability Matrix (%)</div><div class="matrix-wrap"><table id="matrixTable"></table></div><p class="hint" id="matrixHint">Rows = Home · Columns = Away · Brighter = more likely</p></div>
+    <div class="card"><p class="notice">⚠️ <strong>Disclaimer:</strong> Poisson is a probability model — not a guarantee. Always combine with your own research. Bet responsibly.</p></div>
+  </div>
+
+  <div id="hrResults" style="display:none">
+    <div class="card">
+      <div class="card-title">Race Analysis</div>
+      <div class="stat-boxes"><div class="stat-box"><div class="stat-box-label">Bookmaker Overround</div><div class="stat-box-val" id="hrOverround">—</div><div class="stat-box-sub">Bookie's built-in margin</div></div><div class="stat-box"><div class="stat-box-label">Total Implied Prob</div><div class="stat-box-val" id="hrImplied">—</div><div class="stat-box-sub">Should sum to 100%</div></div></div>
+      <div id="hrRunnerResults"></div>
+      <p class="hint" style="margin-top:8px">✅ Value = fair probability exceeds bookmaker's implied probability</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ODDS ANALYSER ═══════════════════ -->
+<div id="tab-odds" class="section">
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="setOddsSubTab('single',this)">🎯 Single Bet</button>
+    <button class="sub-tab" onclick="setOddsSubTab('double',this)">🎲 Double Bet</button>
+    <button class="sub-tab" onclick="setOddsSubTab('builder',this)">🧮 Acca Builder</button>
+  </div>
+
+  <!-- ─── SINGLE BET ─── -->
+  <div id="oddsTab-single">
+    <div class="card">
+      <div class="card-title">Single Bet — Scoreline Finder</div>
+      <p class="section-sub">Enter the two teams and your betslip details. The app finds every scoreline that could produce these odds using Poisson probabilities for those specific teams.</p>
+
+      <div class="match-block">
+        <div class="match-block-title">Match</div>
+        <div class="grid2">
+          <div class="field"><label>Home Team</label><input type="text" id="s_homeTeam" placeholder="e.g. Brazil"></div>
+          <div class="field"><label>Away Team</label><input type="text" id="s_awayTeam" placeholder="e.g. Argentina"></div>
+        </div>
+        <div class="field">
+          <label>Venue Type</label>
+          <div class="venue-pills">
+            <button class="venue-pill active" onclick="setVenueS('home',this)">🏟️ Home/Away</button>
+            <button class="venue-pill" onclick="setVenueS('neutral',this)">⚖️ Neutral</button>
+            <button class="venue-pill" onclick="setVenueS('nearneutral',this)">🔀 Near-Neutral</button>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label>Home Avg Goals Scored</label><input type="number" step="0.01" id="s_homeAtk" placeholder="e.g. 1.8"></div>
+          <div class="field"><label>Away Avg Goals Scored</label><input type="number" step="0.01" id="s_awayAtk" placeholder="e.g. 1.3"></div>
+          <div class="field"><label>Home Avg Goals Conceded</label><input type="number" step="0.01" id="s_homeDef" placeholder="e.g. 1.1"></div>
+          <div class="field"><label>Away Avg Goals Conceded</label><input type="number" step="0.01" id="s_awayDef" placeholder="e.g. 1.4"></div>
+        </div>
+        <p class="hint">Leave stats blank to use league averages only</p>
+      </div>
+
+      <div class="match-block">
+        <div class="match-block-title">Betslip Details</div>
+        <div class="grid2">
+          <div class="field"><label>Stake (£)</label><input type="number" step="0.01" id="s_stake" placeholder="e.g. 5.00" oninput="calcSingleOdds()"></div>
+          <div class="field"><label>Return (£)</label><input type="number" step="0.01" id="s_return" placeholder="e.g. 500.00" oninput="calcSingleOdds()"></div>
+        </div>
+        <div class="field"><label>Estimated Odds from Betslip (optional)</label><input type="text" id="s_estOdds" placeholder="e.g. 99/1 or 100.0 or +9900" oninput="calcSingleOdds()"></div>
+        <div id="s_oddsRange" style="display:none" class="range-box">
+          <div class="range-title">Search Range</div>
+          <div class="range-row">
+            <span id="s_rangeLow" class="range-val">—</span>
+            <span class="range-arrow">→</span>
+            <span id="s_rangeHigh" class="range-val">—</span>
+            <span style="font-size:11px;color:var(--dim);margin-left:4px">decimal odds</span>
+          </div>
+          <p class="range-note" id="s_rangeNote" style="display:none"></p>
+        </div>
+        <div class="field">
+          <label>Tolerance</label>
+          <select id="s_tolerance">
+            <option value="0.05">Tight (±5%)</option>
+            <option value="0.1" selected>Standard (±10%)</option>
+            <option value="0.2">Loose (±20%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Display Odds As</label>
+          <div class="venue-pills">
+            <button class="venue-pill active" onclick="setFmtS('decimal',this)">Decimal</button>
+            <button class="venue-pill" onclick="setFmtS('fractional',this)">Fractional</button>
+            <button class="venue-pill" onclick="setFmtS('american',this)">American</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="match-block">
+        <div class="match-block-title">Bet365 Screenshot (Optional)</div>
+        <p class="section-sub">Upload your Bet365 correct score market screenshot. AI extracts exact odds — far more accurate than averages.</p>
+        <div class="dropzone" id="s_dropzone" onclick="document.getElementById('s_imgInput').click()" ondrop="handleSDrop(event)" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+          <div id="s_dropContent"><div class="dropzone-icon">📱</div><div class="dropzone-text">Upload Bet365 correct score screenshot</div><div class="dropzone-sub">AI reads every scoreline and its odds automatically</div></div>
+        </div>
+        <input type="file" id="s_imgInput" accept="image/*" style="display:none" onchange="handleSFile(event)">
+        <button class="btn btn-outline btn-sm" id="s_extractBtn" onclick="extractS()" disabled style="margin-bottom:8px">Extract Odds from Screenshot</button>
+        <div id="s_extractErr" class="err"></div>
+        <div id="s_extractOut" style="display:none" class="ai-out"><div class="ai-out-title">Extracted Odds</div><div class="ai-out-text" id="s_extractText"></div></div>
+      </div>
+
+      <div id="s_err" class="err" style="margin-bottom:8px"></div>
+      <button class="btn btn-primary" onclick="runSingle()">🎯 Find Scorelines</button>
+    </div>
+
+    <div id="s_results" style="display:none">
+      <div class="card">
+        <div class="card-title">Bet Summary</div>
+        <div class="stat-boxes stat-boxes-3">
+          <div class="stat-box"><div class="stat-box-label">Calculated Odds</div><div class="stat-box-val" id="s_calcOddsDisp">—</div></div>
+          <div class="stat-box"><div class="stat-box-label">Profit</div><div class="stat-box-val" id="s_profitDisp">—</div></div>
+          <div class="stat-box"><div class="stat-box-label">Implied Prob</div><div class="stat-box-val" id="s_impliedDisp">—</div></div>
+        </div>
+        <div id="s_venueNote" style="display:none" class="venue-note" style="margin-top:0"></div>
+      </div>
+      <div class="card" id="s_singleCard">
+        <div class="card-title">Matching Scorelines</div>
+        <p class="section-sub" id="s_singleSub"></p>
+        <div id="s_singleList"></div>
+      </div>
+      <div class="card" style="margin-top:-6px"><p class="notice">⚠️ Odds are estimates. Always verify against your actual Bet365 market before placing. Bet responsibly.</p></div>
+    </div>
+    <div id="s_noResults" style="display:none" class="card"><p class="notice">No scorelines found within your tolerance. Try <strong>Loose (±20%)</strong>, check your stake/return, or upload a Bet365 screenshot for exact odds.</p></div>
+  </div>
+
+  <!-- ─── DOUBLE BET ─── -->
+  <div id="oddsTab-double" style="display:none">
+    <div class="card">
+      <div class="card-title">Double Bet — Scoreline Combination Finder</div>
+      <p class="section-sub">Enter both matches and your betslip details. The app finds every pair of scorelines — one from each match — whose combined odds match your target.</p>
+
+      <div class="match-block">
+        <div class="match-block-title">Match 1</div>
+        <div class="grid2">
+          <div class="field"><label>Home Team</label><input type="text" id="d_home1" placeholder="e.g. France"></div>
+          <div class="field"><label>Away Team</label><input type="text" id="d_away1" placeholder="e.g. Germany"></div>
+        </div>
+        <div class="field">
+          <label>Venue Type</label>
+          <div class="venue-pills">
+            <button class="venue-pill active" onclick="setVenueD(1,'home',this)">🏟️ Home/Away</button>
+            <button class="venue-pill" onclick="setVenueD(1,'neutral',this)">⚖️ Neutral</button>
+            <button class="venue-pill" onclick="setVenueD(1,'nearneutral',this)">🔀 Near-Neutral</button>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label>Home Avg Goals Scored</label><input type="number" step="0.01" id="d_homeAtk1" placeholder="e.g. 1.8"></div>
+          <div class="field"><label>Away Avg Goals Scored</label><input type="number" step="0.01" id="d_awayAtk1" placeholder="e.g. 1.3"></div>
+          <div class="field"><label>Home Avg Goals Conceded</label><input type="number" step="0.01" id="d_homeDef1" placeholder="e.g. 1.1"></div>
+          <div class="field"><label>Away Avg Goals Conceded</label><input type="number" step="0.01" id="d_awayDef1" placeholder="e.g. 1.4"></div>
+        </div>
+        <div style="margin-top:12px">
+          <p style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Bet365 Screenshot — Match 1 (Optional)</p>
+          <div class="dropzone" id="d_drop1" onclick="document.getElementById('d_img1').click()" ondrop="handleDDrop(1,event)" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+            <div id="d_dropContent1"><div class="dropzone-icon">📱</div><div class="dropzone-text">Upload correct score screenshot</div></div>
+          </div>
+          <input type="file" id="d_img1" accept="image/*" style="display:none" onchange="handleDFile(1,event)">
+          <button class="btn btn-outline btn-sm" id="d_extractBtn1" onclick="extractD(1)" disabled>Extract Odds — Match 1</button>
+          <div id="d_extractErr1" class="err"></div>
+          <div id="d_extractOut1" style="display:none" class="ai-out"><div class="ai-out-title">Match 1 Extracted Odds</div><div class="ai-out-text" id="d_extractText1"></div></div>
+        </div>
+      </div>
+
+      <div class="match-block">
+        <div class="match-block-title">Match 2</div>
+        <div class="grid2">
+          <div class="field"><label>Home Team</label><input type="text" id="d_home2" placeholder="e.g. Spain"></div>
+          <div class="field"><label>Away Team</label><input type="text" id="d_away2" placeholder="e.g. England"></div>
+        </div>
+        <div class="field">
+          <label>Venue Type</label>
+          <div class="venue-pills">
+            <button class="venue-pill active" onclick="setVenueD(2,'home',this)">🏟️ Home/Away</button>
+            <button class="venue-pill" onclick="setVenueD(2,'neutral',this)">⚖️ Neutral</button>
+            <button class="venue-pill" onclick="setVenueD(2,'nearneutral',this)">🔀 Near-Neutral</button>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:12px">
+          <div class="field"><label>Home Avg Goals Scored</label><input type="number" step="0.01" id="d_homeAtk2" placeholder="e.g. 1.8"></div>
+          <div class="field"><label>Away Avg Goals Scored</label><input type="number" step="0.01" id="d_awayAtk2" placeholder="e.g. 1.3"></div>
+          <div class="field"><label>Home Avg Goals Conceded</label><input type="number" step="0.01" id="d_homeDef2" placeholder="e.g. 1.1"></div>
+          <div class="field"><label>Away Avg Goals Conceded</label><input type="number" step="0.01" id="d_awayDef2" placeholder="e.g. 1.4"></div>
+        </div>
+        <div style="margin-top:12px">
+          <p style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Bet365 Screenshot — Match 2 (Optional)</p>
+          <div class="dropzone" id="d_drop2" onclick="document.getElementById('d_img2').click()" ondrop="handleDDrop(2,event)" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')">
+            <div id="d_dropContent2"><div class="dropzone-icon">📱</div><div class="dropzone-text">Upload correct score screenshot</div></div>
+          </div>
+          <input type="file" id="d_img2" accept="image/*" style="display:none" onchange="handleDFile(2,event)">
+          <button class="btn btn-outline btn-sm" id="d_extractBtn2" onclick="extractD(2)" disabled>Extract Odds — Match 2</button>
+          <div id="d_extractErr2" class="err"></div>
+          <div id="d_extractOut2" style="display:none" class="ai-out"><div class="ai-out-title">Match 2 Extracted Odds</div><div class="ai-out-text" id="d_extractText2"></div></div>
+        </div>
+      </div>
+
+      <div class="match-block">
+        <div class="match-block-title">Betslip Details</div>
+        <div class="grid2">
+          <div class="field"><label>Stake (£)</label><input type="number" step="0.01" id="d_stake" placeholder="e.g. 2.00" oninput="calcDoubleOdds()"></div>
+          <div class="field"><label>Return (£)</label><input type="number" step="0.01" id="d_return" placeholder="e.g. 800.00" oninput="calcDoubleOdds()"></div>
+        </div>
+        <div class="field"><label>Estimated Odds from Betslip (optional)</label><input type="text" id="d_estOdds" placeholder="e.g. 399/1 or 400.0" oninput="calcDoubleOdds()"></div>
+        <div id="d_oddsRange" style="display:none" class="range-box">
+          <div class="range-title">Search Range</div>
+          <div class="range-row"><span id="d_rangeLow" class="range-val">—</span><span class="range-arrow">→</span><span id="d_rangeHigh" class="range-val">—</span><span style="font-size:11px;color:var(--dim);margin-left:4px">decimal odds</span></div>
+          <p class="range-note" id="d_rangeNote" style="display:none"></p>
+        </div>
+        <div class="field"><label>Tolerance</label><select id="d_tolerance"><option value="0.05">Tight (±5%)</option><option value="0.1" selected>Standard (±10%)</option><option value="0.2">Loose (±20%)</option></select></div>
+        <div class="field">
+          <label>Display Odds As</label>
+          <div class="venue-pills">
+            <button class="venue-pill active" onclick="setFmtD('decimal',this)">Decimal</button>
+            <button class="venue-pill" onclick="setFmtD('fractional',this)">Fractional</button>
+            <button class="venue-pill" onclick="setFmtD('american',this)">American</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="d_err" class="err" style="margin-bottom:8px"></div>
+      <button class="btn btn-primary" onclick="runDouble()">🎲 Find Scoreline Combinations</button>
+    </div>
+
+    <div id="d_results" style="display:none">
+      <div class="card">
+        <div class="card-title">Bet Summary</div>
+        <div class="stat-boxes stat-boxes-3">
+          <div class="stat-box"><div class="stat-box-label">Calculated Odds</div><div class="stat-box-val" id="d_calcOddsDisp">—</div></div>
+          <div class="stat-box"><div class="stat-box-label">Profit</div><div class="stat-box-val" id="d_profitDisp">—</div></div>
+          <div class="stat-box"><div class="stat-box-label">Implied Prob</div><div class="stat-box-val" id="d_impliedDisp">—</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Matching Scoreline Combinations</div>
+        <p class="section-sub" id="d_doubleSub"></p>
+        <div id="d_doubleList"></div>
+      </div>
+      <div class="card" style="margin-top:-6px"><p class="notice">⚠️ Odds are estimates. Always verify against your actual Bet365 market before placing. Bet responsibly.</p></div>
+    </div>
+    <div id="d_noResults" style="display:none" class="card"><p class="notice">No combinations found within your tolerance. Try <strong>Loose (±20%)</strong> or upload Bet365 screenshots for both matches.</p></div>
+  </div>
+
+  <!-- ─── ACCA BUILDER ─── -->
+  <div id="oddsTab-builder" style="display:none">
+    <div class="card">
+      <div class="card-title">Accumulator Builder</div>
+      <p class="section-sub">Add each leg, enter odds in any format, see your combined return instantly.</p>
+      <div style="font-size:10px;color:var(--dim);display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:6px;padding:0 2px"><span>Selection</span><span>Odds</span></div>
+      <div id="accaLegs"></div>
+      <div class="btn-row" style="margin-bottom:14px">
+        <button class="btn btn-ghost btn-sm" onclick="addLeg()">+ Add Leg</button>
+        <button class="btn btn-ghost btn-sm" onclick="removeLeg()">− Remove</button>
+      </div>
+      <div class="field"><label>Stake (£)</label><input type="number" step="0.01" id="accaStake" placeholder="10.00"></div>
+      <button class="btn btn-primary" onclick="buildAcca()" style="margin-top:10px">🧮 Calculate</button>
+    </div>
+    <div id="accaResults" style="display:none" class="card">
+      <div class="card-title">Accumulator Summary</div>
+      <div class="stat-boxes">
+        <div class="stat-box"><div class="stat-box-label">Combined Odds</div><div class="stat-box-val" id="accaCombined">—</div></div>
+        <div class="stat-box"><div class="stat-box-label">Potential Return</div><div class="stat-box-val" id="accaReturn">—</div></div>
+        <div class="stat-box"><div class="stat-box-label">Potential Profit</div><div class="stat-box-val" id="accaProfit">—</div></div>
+        <div class="stat-box"><div class="stat-box-label">Win Probability</div><div class="stat-box-val" id="accaWinProb">—</div></div>
+      </div>
+      <div id="accaLegBreakdown"></div>
+      <p class="hint" style="margin-top:8px">⚠️ All legs must win for the acca to pay out.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SETTINGS ═══════════════════ -->
+<div id="tab-settings" class="section">
+  <div class="card">
+    <div class="card-title">API Keys</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+      <input type="checkbox" id="paidTierToggle" style="width:auto" onchange="window.SE_PAID_TIER=this.checked;try{localStorage.setItem('se_paid_tier',this.checked)}catch{}">
+      <span style="font-size:11px;color:var(--muted)">I have a paid API-Football plan (unlocks current season stats — Daily Tips will be faster and more accurate)</span>
+    </label>
+    <p class="section-sub">Both are free. Instructions below — takes about 2 minutes each.</p>
+    <div class="field"><label>🔥 API-Football Key (api-football.com) — Powers Daily Tips</label><input type="password" id="afApiKey" placeholder="Paste your API-Football key here"></div>
+    <p class="hint" style="margin-bottom:12px">Free tier: 100 calls/day · 900+ leagues · Injuries · Live lineups · Worldwide</p>
+    <div class="field"><label>The Odds API Key (the-odds-api.com)</label><input type="password" id="oddsApiKey" placeholder="Paste your Odds API key here"></div>
+    <p class="hint" style="margin-bottom:12px">Free tier: 500 requests/month · Covers all major leagues + horse racing</p>
+    <div class="field"><label>Football-Data.org API Key</label><input type="password" id="fdApiKey" placeholder="Paste your football-data.org key here"></div>
+    <p class="hint" style="margin-bottom:14px">Completely free forever · Auto-fetches fixtures for Premier League, Bundesliga, Serie A, La Liga, Ligue 1, Brasileirão, Champions League + more</p>
+    <button class="btn btn-primary" onclick="saveKeys()">Save API Keys</button>
+    <div class="save-toast" id="saveToast">✓ Keys saved!</div>
+  </div>
+  <div class="card">
+    <div class="card-title">How to Get Your Free Keys</div>
+    <div class="setup-step">
+      <div class="setup-step-title">1. API-Football — api-football.com (Daily Tips)</div>
+      <ol><li>Go to <strong>api-football.com</strong></li><li>Click Subscribe → choose Free plan</li><li>Create account — no credit card needed</li><li>Go to dashboard → copy your API key</li><li>Paste above and Save</li></ol>
+      <div class="setup-note">Free: 100 calls/day · 900+ leagues worldwide</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-title">2. The Odds API (the-odds-api.com)</div>
+      <ol><li>Go to <strong>the-odds-api.com</strong></li><li>Click "Get API Key" — no credit card needed</li><li>Verify your email address</li><li>Copy the key from your dashboard</li><li>Paste it above and hit Save</li></ol>
+      <div class="setup-note">Free tier: 500 requests/month. Each match odds fetch = 1 request.</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-title">2. Football-Data.org</div>
+      <ol><li>Go to <strong>football-data.org</strong></li><li>Click "Register for free"</li><li>Fill in name and email</li><li>Check your email for the API key</li><li>Paste it above and hit Save</li></ol>
+      <div class="setup-note">Completely free forever — no usage limits on the free tier leagues.</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Install as App</div>
+    <div class="setup-step">
+      <div class="setup-step-title">💻 Laptop (Chrome / Edge)</div>
+      <ol><li>Open this file in Chrome or Edge</li><li>Look for the install icon (⊕) in the address bar — far right</li><li>Click it and select "Install"</li><li>ScoutEdge opens as a standalone app with its own taskbar icon</li></ol>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-title">📱 Android (Chrome)</div>
+      <ol><li>Open ScoutEdge URL in Chrome</li><li>Tap the three-dot menu (⋮) top right</li><li>Tap "Add to Home screen"</li><li>Tap "Add" — icon appears on your home screen</li></ol>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-title">📱 iPhone (Safari)</div>
+      <ol><li>Open ScoutEdge URL in Safari</li><li>Tap the Share button at the bottom</li><li>Tap "Add to Home Screen"</li><li>Tap "Add" — icon appears on your home screen</li></ol>
+    </div>
+  </div>
+</div>
+
+</div><!-- main -->
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let currentSport='football', currentLeague=null;
+let predVenue='home';
+let sVenue='home', sFmt='decimal';
+let dVenue1='home', dVenue2='home', dFmt='decimal';
+let legCount=2;
+let runnerCount=3;
+let imgData=null,imgMime=null;
+let sImgData=null,sImgMime=null,sExtractedOdds=null;
+let dImgData1=null,dImgMime1=null,dExtracted1=null;
+let dImgData2=null,dImgMime2=null,dExtracted2=null;
+
+const KEYS=(()=>{try{return JSON.parse(localStorage.getItem('se_keys')||'{}')}catch{return {}}})()
+
+// ═══ DAILY TIPS ═══════════════════════════════════
+let tipsRunning=false;
+let tipsCancelled=false;
+
+function cancelDailyTips(){
+  tipsCancelled=true;
+  document.getElementById('tipsCancelBtn').style.display='none';
+  setProgress('Cancelling…','Stopping after the current request finishes…',100);
+}
+
+// Custom error used to unwind out of the scan cleanly when cancelled
+class SECancelled extends Error{constructor(){super('Cancelled by user');this.name='SECancelled';}}
+const AF_LEAGUES={all:[39,140,135,78,61,94,88,40,41,42,43,71,307,253,1,2,3,848,119,292,169,197,203,207,262,210,144,235,218,233,17],major:[39,140,135,78,61,1,2,88,94,71,307,253],europe:[39,140,135,78,61,94,88,40,41,42,43,1,2,3,848,119,292,197,203,207,233,218,235]};
+
+function updateTipsUI(){document.getElementById('tipsApiHint').style.display=KEYS.af?'none':'block';document.getElementById('tipsFetchBtn').disabled=!KEYS.af;}
+function setProgress(title,text,p){document.getElementById('tipsProgress').style.display='block';document.getElementById('tipsProgressTitle').textContent=title;document.getElementById('tipsProgressText').textContent=text;document.getElementById('tipsProgressBar').style.width=p+'%';}
+// api-sports.io does not send CORS headers, so direct browser calls are blocked.
+// We route through a free CORS proxy (corsproxy.io) which explicitly supports
+// GitHub Pages (.github.io) as a free origin. The API key still goes in the
+// x-apisports-key header exactly as api-sports.io requires — the proxy just
+// relays the request and attaches the missing CORS headers to the response.
+const CORS_PROXY='https://corsproxy.io/?url=';
+
+// API-Football Pro plan allows 300 requests/minute (5 req/sec hard limit).
+// 210ms between calls = ~4.8 req/sec — safely under the ceiling with margin
+// for the CORS proxy and network jitter. Previously 150ms (6.7 req/sec) was
+// over the limit and causing intermittent rate limit errors mid-scan.
+let SE_LAST_CALL=0;
+const SE_MIN_GAP_MS=210;
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// Sleeps in short chunks so a cancel request is honoured within ~300ms
+// instead of waiting out the full 6.5s/10s gap
+async function cancellableSleep(ms){
+  const step=300;
+  let elapsed=0;
+  while(elapsed<ms){
+    if(tipsCancelled)throw new SECancelled();
+    const chunk=Math.min(step,ms-elapsed);
+    await sleep(chunk);
+    elapsed+=chunk;
+  }
+}
+
+async function afFetch(ep,isRetry){
+  // Enforce minimum gap since the last request (Pro-tier pace)
+  const now=Date.now();
+  const wait=SE_LAST_CALL+SE_MIN_GAP_MS-now;
+  if(tipsCancelled)throw new SECancelled();
+  if(wait>0)await cancellableSleep(wait);
+  if(tipsCancelled)throw new SECancelled();
+  SE_LAST_CALL=Date.now();
+
+  const targetUrl='https://v3.football.api-sports.io'+ep;
+  const proxiedUrl=CORS_PROXY+encodeURIComponent(targetUrl);
+  try{
+    const res=await fetch(proxiedUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af}});
+    if(!res.ok)throw new Error('API error '+res.status);
+    const d=await res.json();
+    if(d&&d.errors&&Array.isArray(d.errors)===false&&Object.keys(d.errors).length>0){
+      const errStr=JSON.stringify(d.errors);
+      // If rate-limited, wait longer and retry once automatically
+      if(!isRetry&&/rate|too many requests/i.test(errStr)){
+        await cancellableSleep(10000);
+        SE_LAST_CALL=Date.now();
+        return afFetch(ep,true);
+      }
+      throw new Error(errStr);
+    }
+    return d;
+  }catch(e){
+    throw new Error('Could not reach API-Football: '+e.message);
+  }
+}
+
+// Verify the API key works before running the full scan.
+// Also auto-detects paid plans (e.g. Pro) from the live subscription data
+// so the user doesn't have to remember to flip the Settings checkbox —
+// the checkbox is kept as a manual override/fallback only.
+async function verifyAfKey(){
+  try{
+    const d=await afFetch('/status');
+    const sub=d.response&&d.response.subscription;
+    const reqs=d.response&&d.response.requests;
+    const limitDay=reqs?reqs.limit_day:null;
+    if(sub){
+      const planName=(sub.plan||'').toLowerCase();
+      const isPaidPlan=planName!=='free'&&planName!=='';
+      if(isPaidPlan){
+        window.SE_PAID_TIER=true;
+        window.SE_API_LIMIT_DAY=limitDay;
+        try{
+          localStorage.setItem('se_paid_tier','true');
+          const cb=document.getElementById('paidTierToggle');
+          if(cb)cb.checked=true;
+        }catch{}
+      }
+      return{ok:true,plan:sub.plan,remaining:limitDay?(limitDay-reqs.current):null,isPaidPlan};
+    }
+    if(d.errors&&Object.keys(d.errors).length>0)return{ok:false,msg:JSON.stringify(d.errors)};
+    return{ok:true};
+  }catch(e){return{ok:false,msg:e.message};}
+}
+
+// Safely extract goal average from API-Football stats — handles all response shapes
+function extractGoalAvg(statsObj,side,context){
+  if(!statsObj||!statsObj.goals)return null;
+  const g=statsObj.goals;
+  const branch=side==='for'?g.for:g.against;
+  if(!branch)return null;
+  // Try average object first
+  if(branch.average){
+    const v=branch.average[context]||branch.average.total||branch.average.home||branch.average.away;
+    const n=parseFloat(v);
+    if(!isNaN(n)&&n>0)return n;
+  }
+  // Fallback: total / games played
+  if(branch.total){
+    const tot=branch.total[context]||branch.total.total;
+    const fp=statsObj.fixtures&&statsObj.fixtures.played;
+    const played=fp&&(fp[context]||fp.total);
+    if(tot!=null&&played>0)return parseFloat(tot)/parseFloat(played);
+  }
+  return null;
+}
+
+// Leagues known to have reliable stats on API-Football free tier
+// Used only to filter OUT leagues with no data — not to rank predictions
+const RELIABLE_LEAGUES=new Set([
+  // International tournaments — World Cup, major cups
+  1,17,9,10,29,30,32,34,777,    // World Cup + all WC qualification regions
+  2,3,848,                       // UEFA CL, EL, Conference League
+  // Top domestic leagues with reliable API data
+  39,40,41,42,43,                // England
+  140,141,142,143,               // Spain
+  135,136,                       // Italy
+  78,79,                         // Germany
+  61,62,                         // France
+  94,95,                         // Portugal
+  88,89,                         // Netherlands
+  144,145,                       // Belgium
+  235,                           // Russia
+  203,                           // Turkey
+  307,                           // Saudi Pro League
+  253,254,                       // USA MLS
+  71,72,                         // Brazil
+  262,263,                       // Mexico
+  119,120,                       // Japan
+  292,                           // South Korea
+  169,113,                       // Norway, Sweden
+  207,197,210,218,233,           // Romania, Greece, Hungary, Ukraine, Czech
+  244,271,                       // Finland, Denmark
+  383,128,                       // Argentina
+  239,179,                       // Scotland
+  496,                           // UAE
+  960,961,                       // AFC Champions League
+  257,                           // Colombia
+  268,                           // Morocco
+  233,                           // Czech Republic
+]);
+
+// Leagues explicitly blocked from the scan regardless of tier.
+// These are competitions where predictions have no real value:
+// youth leagues, women's leagues (separate model needed), cup competitions
+// with mixed-tier opponents, amateur/regional tournaments, and sub-divisions
+// that are too granular to have reliable stats coverage.
+// IDs confirmed from live debug data — add new ones here as they appear.
+const BLOCKED_LEAGUES=new Set([
+  // ── YOUTH LEAGUES ──────────────────────────────────────────────────────────
+  740,   // Brasileiro U20 A (Brazil)
+  1128,  // Brasileiro U17 (Brazil)
+  1076,  // Catarinense U20 (Brazil)
+  // ── WOMEN'S LEAGUES ────────────────────────────────────────────────────────
+  1117,  // USL W League (USA)
+  549,   // Damallsvenskan (Sweden)
+  // ── CUP COMPETITIONS (mixed-tier opponents, unreliable form signal) ─────────
+  267,   // Copa Chile
+  661,   // Cup (Lithuania)
+  115,   // Svenska Cupen (Sweden)
+  167,   // Cup (Iceland)
+  491,   // Løgmanssteypid (Faroe Islands cup)
+  672,   // David Kipiani Cup (Georgia)
+  1113,  // Copa Venezuela
+  1035,  // Copa Rio (Brazil)
+  1097,  // Copa Espírito Santo (Brazil)
+  // ── AMATEUR / REGIONAL / STATE COMPETITIONS ────────────────────────────────
+  1067,  // Torneo Promocional Amateur (Argentina)
+  851,   // Carioca A2 (Brazil)
+  619,   // Mineiro - 2 (Brazil)
+  936,   // Catarinense - 2 (Brazil)
+  1148,  // Maranhense - 2 (Brazil)
+  592,   // Division 2 - Norra Götaland (Sweden)
+  597,   // Division 2 - Södra Götaland (Sweden)
+  596,   // Division 2 - Västra Götaland (Sweden)
+  593,   // Division 2 - Norra Svealand (Sweden)
+  595,   // Division 2 - Södra Svealand (Sweden)
+  563,   // Ettan - Norra (Sweden)
+  774,   // 3. Division - Girone 1 (Norway)
+  366,   // 1. Deild (Faroe Islands second tier)
+  481,   // Northern NSW NPL (Australia)
+  1090,  // NNSW League 1 (Australia)
+  // ── FRIENDLIES ─────────────────────────────────────────────────────────────
+  667,   // Friendlies Clubs (World) — results are meaningless for prediction
+  // ── VERY LOW TIER / INSUFFICIENT DATA ──────────────────────────────────────
+  652,   // Second League Group 2 (Russia)
+  929,   // League Two (China)
+  569,   // Premier League (Kyrgyzstan)
+  764,   // Premier League (Mongolia)
+  1031,  // Premier League (Bhutan)
+  968,   // Championnat D1 (Gabon)
+  256,   // USL League Two (USA — 4th tier)
+  489,   // USL League One (USA — 3rd tier, borderline)
+]);
+
+// International team IDs — these use different stat endpoints
+const INTERNATIONAL_LEAGUES=new Set([1,17,9,10,29,30,32,34,777]);
+
+// Tier scores for all known leagues — used as tiebreaker when confidence scores
+// are equal. Higher = more prestigious. Unknown leagues fall to 10 (bottom).
+const LEAGUE_TIERS={
+  // ── WORLD CUP & MAJOR INTERNATIONALS ───────────────────────────────────────
+  1:100,    // FIFA World Cup
+  17:60,    // World Cup Qualification (UEFA)
+  9:55,     // World Cup Qual (CONMEBOL)
+  10:55,    // World Cup Qual (AFC)
+  29:55,    // World Cup Qual (CAF)
+  30:55,    // World Cup Qual (CONCACAF)
+  32:55,    // World Cup Qual (OFC)
+  34:55,    // World Cup Qual (inter-conf playoff)
+  777:55,   // World Cup (women)
+  4:80,     // UEFA European Championship
+  6:75,     // Africa Cup of Nations
+  7:72,     // Copa America
+  // ── UEFA CLUB COMPETITIONS ─────────────────────────────────────────────────
+  2:95,     // UEFA Champions League
+  3:92,     // UEFA Europa League
+  848:88,   // UEFA Conference League
+  // ── AFC CLUB COMPETITIONS ──────────────────────────────────────────────────
+  960:72,   // AFC Champions League Elite
+  961:68,   // AFC Champions League Two
+  // ── ENGLAND ────────────────────────────────────────────────────────────────
+  39:90,    // Premier League
+  40:75,    // Championship
+  41:68,    // League One
+  42:62,    // League Two
+  43:58,    // National League
+  45:65,    // FA Cup
+  48:62,    // League Cup (Carabao)
+  // ── SPAIN ──────────────────────────────────────────────────────────────────
+  140:90,   // La Liga
+  141:72,   // La Liga 2
+  142:62,   // Segunda B (now Primera Federación)
+  143:58,   // Tercera División
+  556:62,   // Copa del Rey
+  // ── ITALY ──────────────────────────────────────────────────────────────────
+  135:90,   // Serie A
+  136:72,   // Serie B
+  137:60,   // Serie C
+  547:62,   // Coppa Italia
+  // ── GERMANY ────────────────────────────────────────────────────────────────
+  78:90,    // Bundesliga
+  79:74,    // 2. Bundesliga
+  80:62,    // 3. Liga
+  529:62,   // DFB Pokal
+  // ── FRANCE ─────────────────────────────────────────────────────────────────
+  61:88,    // Ligue 1
+  62:72,    // Ligue 2
+  63:60,    // National
+  526:60,   // Coupe de France
+  // ── PORTUGAL ───────────────────────────────────────────────────────────────
+  94:85,    // Primeira Liga
+  95:68,    // Segunda Liga
+  96:58,    // Terceira Liga
+  // ── NETHERLANDS ────────────────────────────────────────────────────────────
+  88:82,    // Eredivisie
+  89:65,    // Eerste Divisie
+  90:58,    // Tweede Divisie
+  // ── BELGIUM ────────────────────────────────────────────────────────────────
+  144:68,   // Pro League (Jupiler)
+  145:58,   // First Amateur Division
+  // ── TURKEY ─────────────────────────────────────────────────────────────────
+  203:70,   // Süper Lig
+  204:60,   // 1. Lig
+  // ── RUSSIA ─────────────────────────────────────────────────────────────────
+  235:65,   // Premier League
+  236:55,   // FNL
+  // ── UKRAINE ────────────────────────────────────────────────────────────────
+  333:62,   // Premier League
+  // ── NETHERLANDS (extra) / SWITZERLAND ──────────────────────────────────────
+  207:63,   // Super League (Switzerland)
+  208:55,   // Challenge League (Switzerland)
+  // ── SCOTLAND ───────────────────────────────────────────────────────────────
+  239:72,   // Premiership
+  240:60,   // Championship
+  241:55,   // League One
+  179:58,   // League Cup
+  // ── GREECE ─────────────────────────────────────────────────────────────────
+  197:65,   // Super League
+  198:55,   // Super League 2
+  // ── ROMANIA ────────────────────────────────────────────────────────────────
+  283:62,   // Liga 1
+  284:52,   // Liga 2
+  // ── HUNGARY ────────────────────────────────────────────────────────────────
+  210:60,   // OTP Bank Liga
+  // ── CZECH REPUBLIC ─────────────────────────────────────────────────────────
+  345:62,   // Czech Liga
+  346:52,   // Czech FNL
+  233:62,   // (alternate Czech Liga ID)
+  // ── AUSTRIA ────────────────────────────────────────────────────────────────
+  218:63,   // Bundesliga
+  219:53,   // 2. Liga
+  // ── DENMARK ────────────────────────────────────────────────────────────────
+  271:63,   // Superliga
+  272:53,   // 1st Division
+  // ── SWEDEN ─────────────────────────────────────────────────────────────────
+  113:62,   // Allsvenskan
+  114:52,   // Superettan
+  // ── NORWAY ─────────────────────────────────────────────────────────────────
+  103:62,   // Eliteserien
+  104:52,   // 1. divisjon
+  // ── FINLAND ────────────────────────────────────────────────────────────────
+  244:58,   // Veikkausliiga
+  245:48,   // Ykkönen
+  // ── POLAND ─────────────────────────────────────────────────────────────────
+  106:63,   // Ekstraklasa
+  107:53,   // I Liga
+  // ── CROATIA ────────────────────────────────────────────────────────────────
+  209:60,   // HNL
+  // ── SERBIA ─────────────────────────────────────────────────────────────────
+  286:58,   // Super Liga
+  // ── SLOVAKIA ───────────────────────────────────────────────────────────────
+  332:55,   // Super Liga
+  // ── SLOVENIA ───────────────────────────────────────────────────────────────
+  322:55,   // PrvaLiga
+  // ── BULGARIA ───────────────────────────────────────────────────────────────
+  172:58,   // First League
+  // ── ISRAEL ─────────────────────────────────────────────────────────────────
+  165:58,   // Premier League
+  // ── CYPRUS ─────────────────────────────────────────────────────────────────
+  // ── GEORGIA ────────────────────────────────────────────────────────────────
+  327:52,   // Erovnuli Liga (top division) — confirmed ID from live debug
+  514:52,   // Erovnuli Liga (alternate ID — keep both)
+  515:42,   // Erovnuli Liga 2
+  // ── ARMENIA ────────────────────────────────────────────────────────────────
+  370:45,   // Premier League
+  // ── AZERBAIJAN ─────────────────────────────────────────────────────────────
+  340:45,   // Premier League
+  // ── KAZAKHSTAN ─────────────────────────────────────────────────────────────
+  392:48,   // Premier League
+  // ── BELARUS ────────────────────────────────────────────────────────────────
+  116:48,   // Premier League
+  // ── MOLDOVA ────────────────────────────────────────────────────────────────
+  234:42,   // Super Liga
+  // ── ALBANIA ────────────────────────────────────────────────────────────────
+  168:48,   // Kategoria Superiore
+  // ── NORTH MACEDONIA ────────────────────────────────────────────────────────
+  267:42,   // First Football League
+  // ── BOSNIA ─────────────────────────────────────────────────────────────────
+  354:45,   // Premier League
+  // ── MONTENEGRO ─────────────────────────────────────────────────────────────
+  279:42,   // First League
+  // ── LATVIA ─────────────────────────────────────────────────────────────────
+  326:45,   // Virsliga
+  // ── LITHUANIA ──────────────────────────────────────────────────────────────
+  166:45,   // A lyga
+  // ── ESTONIA ────────────────────────────────────────────────────────────────
+  398:45,   // Meistriliiga
+  // ── LUXEMBOURG ─────────────────────────────────────────────────────────────
+  // ── ICELAND ────────────────────────────────────────────────────────────────
+  164:48,   // Úrvalsdeild
+  // ── FAROE ISLANDS ──────────────────────────────────────────────────────────
+  222:40,   // Premier League
+  // ── IRELAND ────────────────────────────────────────────────────────────────
+  357:52,   // League of Ireland Premier
+  // ── NORTHERN IRELAND ───────────────────────────────────────────────────────
+  384:48,   // NIFL Premiership
+  // ── WALES ──────────────────────────────────────────────────────────────────
+  112:48,   // Cymru Premier
+  // ── SAUDI ARABIA ───────────────────────────────────────────────────────────
+  307:78,   // Pro League
+  308:58,   // First Division
+  // ── UAE ────────────────────────────────────────────────────────────────────
+  496:60,   // Arabian Gulf League
+  // ── QATAR ──────────────────────────────────────────────────────────────────
+  28:60,    // Stars League (QSL)
+  // ── EGYPT ──────────────────────────────────────────────────────────────────
+  // ── MOROCCO ────────────────────────────────────────────────────────────────
+  200:58,   // Botola Pro
+  268:58,   // (alternate Morocco ID)
+  // ── ALGERIA ────────────────────────────────────────────────────────────────
+  405:52,   // Ligue Professionnelle
+  // ── TUNISIA ────────────────────────────────────────────────────────────────
+  202:52,   // Ligue 1
+  // ── SOUTH AFRICA ───────────────────────────────────────────────────────────
+  288:55,   // Premier Soccer League
+  // ── NIGERIA ────────────────────────────────────────────────────────────────
+  // ── GHANA ──────────────────────────────────────────────────────────────────
+  372:48,   // Premier League
+  // ── KENYA ──────────────────────────────────────────────────────────────────
+  484:42,   // Premier League
+  // ── ETHIOPIA ───────────────────────────────────────────────────────────────
+  594:38,   // Ethiopian Premier League
+  // ── TANZANIA ───────────────────────────────────────────────────────────────
+  567:38,   // Ligi Kuu Bara (confirmed from live debug)
+  // ── TANZANIA ───────────────────────────────────────────────────────────────
+  705:38,   // NBC Premier League
+  // ── UGANDA ─────────────────────────────────────────────────────────────────
+  565:38,   // StarTimes Uganda Premier League
+  // ── USA ────────────────────────────────────────────────────────────────────
+  253:75,   // MLS
+  254:60,   // USL Championship
+  255:50,   // USL League One
+  // ── CANADA ─────────────────────────────────────────────────────────────────
+  321:58,   // Canadian Premier League
+  // ── MEXICO ─────────────────────────────────────────────────────────────────
+  262:68,   // Liga MX
+  263:55,   // Liga de Expansión
+  // ── BRAZIL ─────────────────────────────────────────────────────────────────
+  71:80,    // Série A
+  72:65,    // Série B
+  73:52,    // Série C
+  // ── ARGENTINA ──────────────────────────────────────────────────────────────
+  128:72,   // Liga Profesional
+  383:72,   // (alternate Argentina top div — keep both)
+  129:52,   // Primera Nacional (confirmed from live debug)
+  130:53,   // Primera Nacional
+  // ── COLOMBIA ───────────────────────────────────────────────────────────────
+  257:60,   // Liga BetPlay
+  // ── CHILE ──────────────────────────────────────────────────────────────────
+  265:60,   // Primera División
+  266:50,   // Primera B
+  // ── PERU ───────────────────────────────────────────────────────────────────
+  281:55,   // Liga 1
+  // ── ECUADOR ────────────────────────────────────────────────────────────────
+  301:55,   // LigaPro
+  // ── URUGUAY ────────────────────────────────────────────────────────────────
+  // ── PARAGUAY ───────────────────────────────────────────────────────────────
+  282:52,   // División de Honor
+  // ── VENEZUELA ──────────────────────────────────────────────────────────────
+  105:50,   // Primera División
+  // ── BOLIVIA ────────────────────────────────────────────────────────────────
+  // ── JAPAN ──────────────────────────────────────────────────────────────────
+  119:72,   // J1 League
+  120:60,   // J2 League
+  121:50,   // J3 League
+  // ── SOUTH KOREA ────────────────────────────────────────────────────────────
+  292:68,   // K League 1
+  293:55,   // K League 2
+  // ── CHINA ──────────────────────────────────────────────────────────────────
+  169:60,   // Chinese Super League (note: check vs Norway)
+  // ── AUSTRALIA ──────────────────────────────────────────────────────────────
+  188:58,   // A-League Men
+  // ── INDIA ──────────────────────────────────────────────────────────────────
+  323:52,   // Indian Super League
+  // ── IRAN ───────────────────────────────────────────────────────────────────
+  290:52,   // Persian Gulf Pro League
+  // ── IRAQ ───────────────────────────────────────────────────────────────────
+  // ── JORDAN ─────────────────────────────────────────────────────────────────
+  361:42,   // Pro League
+  // ── LEBANON ────────────────────────────────────────────────────────────────
+  390:42,   // Premier League (confirmed from live debug)
+  // ── SYRIA ──────────────────────────────────────────────────────────────────
+  425:38,   // Premier League (confirmed from live debug)
+  // ── THAILAND ───────────────────────────────────────────────────────────────
+  296:50,   // Thai League 1
+  // ── INDONESIA ──────────────────────────────────────────────────────────────
+  317:48,   // Liga 1
+  // ── MALAYSIA ───────────────────────────────────────────────────────────────
+  // ── VIETNAM ────────────────────────────────────────────────────────────────
+};
+function leagueTier(id){return LEAGUE_TIERS[id]||10;}
+function mHomeName(f){return f.teams.home.name;}
+function mAwayName(f){return f.teams.away.name;}
+
+// Robust stat extractor — handles all known API-Football response shapes
+function extractGoalAvg(statsObj,side,context){
+  if(!statsObj||!statsObj.goals)return null;
+  const branch=(side==='for')?statsObj.goals.for:statsObj.goals.against;
+  if(!branch)return null;
+  if(branch.average){
+    const v=branch.average[context]||branch.average.total||branch.average.home||branch.average.away;
+    const n=parseFloat(v);
+    if(!isNaN(n)&&n>0)return n;
+  }
+  if(branch.total){
+    const tot=branch.total[context]!=null?branch.total[context]:branch.total.total;
+    const fp=statsObj.fixtures&&statsObj.fixtures.played;
+    const played=fp&&(fp[context]||fp.total);
+    if(tot!=null&&parseFloat(played)>0)return parseFloat(tot)/parseFloat(played);
+  }
+  return null;
+}
+
+async function fetchDailyTips(){
+  if(tipsRunning||!KEYS.af)return;
+  tipsRunning=true;
+  tipsCancelled=false;
+  const btn=document.getElementById('tipsFetchBtn');
+  btn.disabled=true;btn.textContent='Scanning…';
+  document.getElementById('tipsCancelBtn').style.display='inline-block';
+  document.getElementById('tipsErr').textContent='';
+  document.getElementById('tipsList').innerHTML='';
+  document.getElementById('tipsEmpty').style.display='none';
+  document.getElementById('tipsDebugPanel').style.display='none';
+  window.SE_DEBUG={captured:false};
+  // Verify key before running full scan
+  setProgress('Verifying API key…','Checking your API-Football connection…',5);
+  const keyCheck=await verifyAfKey();
+  if(!keyCheck.ok){
+    document.getElementById('tipsErr').textContent='❌ API key error: '+keyCheck.msg+'. Go to ⚙️ Settings and re-enter your API-Football key.';
+    document.getElementById('tipsProgress').style.display='none';
+    tipsRunning=false;btn.disabled=false;btn.textContent='🔥 Generate Today’s Tips';
+    return;
+  }
+  if(keyCheck.remaining!==null&&keyCheck.remaining<10){
+    document.getElementById('tipsErr').textContent='⚠️ Only '+keyCheck.remaining+' API calls remaining today. Results may be limited.';
+  }
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const tomorrow=new Date(now.getTime()+86400000).toISOString().slice(0,10);
+  const lf=document.getElementById('tipsLeagueFilter').value;
+  const cf=document.getElementById('tipsConfidence').value;
+  const leagueIds=AF_LEAGUES[lf]||AF_LEAGUES.all;
+  try{
+    const todayOnly=document.getElementById('todayOnlyToggle').checked;
+    setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
+    // Fetch today always; fetch tomorrow only if today-only toggle is off
+    const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
+    const fdTomorrow=todayOnly?{response:[]}:await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
+    const allResponse=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
+
+    // Filter to fixtures that:
+    // 1. Match the selected league filter
+    // 2. Have a kickoff time strictly in the future — we use the actual timestamp
+    //    rather than relying solely on API status, because lower-tier league statuses
+    //    can lag hours (a 17:30 game can still show as NS at 21:30).
+    let allFixtures=allResponse
+      .filter(f=>lf==='all'||leagueIds.includes(f.league.id))
+      .filter(f=>!BLOCKED_LEAGUES.has(f.league.id))
+      .filter(f=>{
+        const ko=f.fixture.date?new Date(f.fixture.date):null;
+        const isFuture=ko&&ko>now;
+        // Explicitly whitelist only genuinely scheduled statuses.
+        // PST=Postponed, CANC=Cancelled, ABD=Abandoned, AWD=Awarded, WO=Walkover
+        // are all excluded — a postponed game can still have a future timestamp
+        // if the API hasn't updated the date yet, so status check is essential.
+        const isScheduled=['NS','TBD'].includes(f.fixture.status.short);
+        return isFuture&&isScheduled;
+      });
+
+    const total=allFixtures.length;
+
+    if(!total){
+      document.getElementById('tipsErr').textContent='No upcoming fixtures found for today or tomorrow ('+today+' / '+tomorrow+'). This usually means the API key has no requests left, or there genuinely are no scheduled matches in this filter.';
+      document.getElementById('tipsEmpty').style.display='block';
+      document.getElementById('tipsProgress').style.display='none';
+      return;
+    }
+
+    // Sort by league tier so the most prestigious games get stat calls first
+    // This maximises quality within the API call budget — but ALL leagues are eligible
+    allFixtures.sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
+
+    // Build a league summary for the debug panel — shows ID, name, tier and
+    // fixture count for everything found today/tomorrow. Useful for identifying unknown
+    // leagues (tier 10) so their IDs can be added to LEAGUE_TIERS.
+    const leagueSummary=[...new Map(
+      allResponse
+        .filter(f=>['NS','TBD'].includes(f.fixture.status.short))
+        .map(f=>[f.league.id,{id:f.league.id,name:f.league.name,country:f.league.country,tier:leagueTier(f.league.id),count:0}])
+    ).values()];
+    allResponse.filter(f=>['NS','TBD'].includes(f.fixture.status.short))
+      .forEach(f=>{const l=leagueSummary.find(l=>l.id===f.league.id);if(l)l.count++;});
+    leagueSummary.sort((a,b)=>b.tier-a.tier);
+    window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
+
+    // Process up to 25 fixtures — each = 2 stat calls (home + away)
+    const toProcess=allFixtures.slice(0,25);
+
+    // Warn if the majority of processable fixtures are from low-tier/unknown leagues
+    const unknownInTop=toProcess.filter(f=>leagueTier(f.league.id)<=10).length;
+    if(unknownInTop>toProcess.length*0.5){
+      const existing=document.getElementById('tipsErr').textContent;
+      document.getElementById('tipsErr').textContent=(existing?existing+' ':'')+
+        '⚠️ Most fixtures today are from unrecognised leagues (tier 10). Major European leagues are likely on a break. Results may be from lower-tier competitions — check the League Inspector in Debug for details.';
+    }
+
+    setProgress('Step 1 of 4 — Fetching fixtures',
+      'Found '+total+' fixtures worldwide. Processing top '+toProcess.length+' by league quality…',15);
+
+    // ── ODDS PRE-FETCH ────────────────────────────────────────────────────────
+    // Map API-Football league IDs → Odds API sport keys for the leagues that
+    // actually have bookmaker coverage. Only fetch keys for leagues present in
+    // today's fixture list — avoids the previous approach of blasting 17 calls
+    // regardless of what's actually scheduled.
+    const LEAGUE_ODDS_KEY={
+      1:'soccer_fifa_world_cup', 2:'soccer_uefa_champs_league',
+      3:'soccer_uefa_europa', 39:'soccer_epl', 140:'soccer_spain_la_liga',
+      78:'soccer_germany_bundesliga', 135:'soccer_italy_serie_a',
+      61:'soccer_france_ligue_one', 88:'soccer_netherlands_eredivisie',
+      94:'soccer_portugal_primeira_liga', 71:'soccer_brazil_campeonato',
+      307:'soccer_saudi_professional_league', 203:'soccer_turkey_super_league',
+      253:'soccer_usa_mls', 119:'soccer_japan_j_league',
+      292:'soccer_korea_kleague1', 262:'soccer_mexico_ligamx',
+      188:'soccer_australia_aleague',
+    };
+    const oddsMap={};
+    if(KEYS.oddsApi){
+      // Find which sport keys are actually needed for today's fixtures
+      const neededKeys=new Set(
+        toProcess.map(f=>LEAGUE_ODDS_KEY[f.league.id]).filter(Boolean)
+      );
+      for(const key of neededKeys){
+        try{
+          // Small delay between odds calls — Odds API has its own rate limit
+          await new Promise(r=>setTimeout(r,300));
+          const r=await fetch('https://api.the-odds-api.com/v4/sports/'+key+'/odds/?apiKey='+KEYS.oddsApi+'&regions=uk&markets=h2h&oddsFormat=decimal');
+          if(!r.ok)continue;
+          const data=await r.json();
+          if(!Array.isArray(data))continue;
+          data.forEach(m=>{
+            const bk=m.bookmakers[0];
+            if(!bk)return;
+            const mkt=bk.markets.find(mk=>mk.key==='h2h');
+            if(!mkt)return;
+            const hw=mkt.outcomes.find(o=>o.name===m.home_team);
+            const aw=mkt.outcomes.find(o=>o.name===m.away_team);
+            const dr=mkt.outcomes.find(o=>o.name==='Draw');
+            if(!hw||!aw||!dr)return;
+            const raw={hw:1/hw.price,d:1/dr.price,aw:1/aw.price};
+            const total=raw.hw+raw.d+raw.aw;
+            oddsMap[m.home_team.toLowerCase().slice(0,8)+'|'+m.away_team.toLowerCase().slice(0,8)]={
+              hw:raw.hw/total,d:raw.d/total,aw:raw.aw/total
+            };
+          });
+        }catch(e){}
+      }
+    }
+
+    const currentYear=new Date().getFullYear();
+    // Free tier only serves stats for seasons 2022-2024 — current/previous year
+    // always fails on free plans, wasting calls and time. Go straight to what works.
+    const FREE_TIER_SEASON=2024;
+    const isFreeTier=!window.SE_PAID_TIER; // toggled in Settings if user upgrades
+    const seasons=isFreeTier?[FREE_TIER_SEASON]:[currentYear,currentYear-1,FREE_TIER_SEASON];
+    const matchData=[];
+
+    for(let i=0;i<toProcess.length;i++){
+      if(tipsCancelled)throw new SECancelled();
+      const f=toProcess[i];
+      let homeStats=null,awayStats=null;
+      const isIntl=INTERNATIONAL_LEAGUES.has(f.league.id);
+
+      if(isIntl){
+        // ── INTERNATIONAL WEIGHTED STATS ENGINE ──────────────────────────────
+        // Rather than taking stats from a single source, we pull from every
+        // available competition and compute a weighted goals-per-game average.
+        // Each source has a weight reflecting its relevance to predicting this
+        // fixture. More games from a source increases its contribution
+        // proportionally — so 8 qualifying games outweigh 2 friendly games
+        // even if friendlies are fetched first.
+        //
+        // Source weights (per game):
+        //   WC 2026 tournament       1.00  — most relevant
+        //   WC 2026 qualifying       0.80  — recent competitive
+        //   Nations League / CONMEBOL qual 0.75
+        //   Euro 2024 / Copa 2024    0.70  — last major tournament
+        //   WC 2022 tournament       0.50  — previous WC
+        //   WC 2022 qualifying       0.45
+        //   Friendlies               0.30  — noisy but useful as last resort
+
+        const INTL_SOURCES=[
+          {leagues:[1],              seasons:[2026],           weight:1.00, label:'WC2026'},
+          {leagues:[17,9,10,29,30,32,34], seasons:[2025,2024], weight:0.80, label:'WCQual'},
+          // UEFA Nations League IDs: verify from League Inspector (enable Debug, run a scan
+          // on a day with international fixtures, check the league table for Nations League IDs)
+          // Known confirmed: 4=UEFA Euros, 6=AFCON, 7=Copa America
+          {leagues:[4,6,7],          seasons:[2024],           weight:0.70, label:'MajorTournament'},
+          {leagues:[1],              seasons:[2022],           weight:0.50, label:'WC2022'},
+          {leagues:[17,9,10,29,30,32,34], seasons:[2022,2021], weight:0.45, label:'WCQual2022'},
+          // International friendlies: API-Football stores these under the team's country league
+          // Try qualifying league IDs from older seasons as a proxy for broader competitive history
+          {leagues:[17,9,10,29,30,32,34], seasons:[2020,2019], weight:0.30, label:'OlderQual'},
+        ];
+
+        // Accumulators for weighted average: {sumWeightedGoals, sumWeightedConceded, totalWeight, totalGP}
+        const hAcc={sf:0,sa:0,w:0,gp:0};
+        const aAcc={sf:0,sa:0,w:0,gp:0};
+
+        const fetchIntlStats=async(teamId,acc)=>{
+          let callsMade=0;
+          const MAX_INTL_CALLS=8; // hard cap per team — worst case 16 calls per fixture
+          for(const src of INTL_SOURCES){
+            // Early exit conditions:
+            // 1. Hard call cap — never more than 8 calls per team
+            // 2. Soft threshold — acc.w>=3 means we have at least 3 weighted games
+            //    worth of data (e.g. a full WC group stage at weight 1.0), which is
+            //    enough for a meaningful Poisson input. The old threshold of 5 was
+            //    too high for tournament teams who only play 3 group games.
+            if(callsMade>=MAX_INTL_CALLS||acc.w>=3)break;
+            for(const lid of src.leagues){
+              if(callsMade>=MAX_INTL_CALLS||acc.w>=3)break;
+              for(const season of src.seasons){
+                if(callsMade>=MAX_INTL_CALLS||acc.w>=3)break;
+                try{
+                  const res=await afFetch('/teams/statistics?league='+lid+'&season='+season+'&team='+teamId);
+                  callsMade++;
+                  const r=res.response;
+                  if(!r||!r.fixtures)continue;
+                  const played=parseInt((r.fixtures.played&&r.fixtures.played.total)||0,10);
+                  if(played<1)continue;
+                  const gf=parseFloat((r.goals&&r.goals.for&&r.goals.for.total&&r.goals.for.total.total)||0);
+                  const ga=parseFloat((r.goals&&r.goals.against&&r.goals.against.total&&r.goals.against.total.total)||0);
+                  if(gf===0&&ga===0)continue;
+                  const perGameW=played*src.weight;
+                  acc.sf+=gf*src.weight;
+                  acc.sa+=ga*src.weight;
+                  acc.w+=perGameW;
+                  acc.gp+=played;
+                }catch(e){callsMade++;}
+              }
+            }
+          }
+        };
+
+        // Fetch both teams sequentially (parallel would burst rate limit)
+        await fetchIntlStats(f.teams.home.id,hAcc);
+        await fetchIntlStats(f.teams.away.id,aAcc);
+
+        // Build synthetic stats objects that buildTipPrediction can consume
+        // via the existing extractGoalAvg path
+        if(hAcc.w>0){
+          const hGpg=hAcc.sf/hAcc.w;
+          const hGcg=hAcc.sa/hAcc.w;
+          homeStats={
+            _weighted:true, _gp:hAcc.gp, _weight:hAcc.w,
+            fixtures:{played:{total:hAcc.gp,home:hAcc.gp,away:hAcc.gp}},
+            goals:{
+              for:{average:{total:hGpg.toFixed(2),home:hGpg.toFixed(2),away:hGpg.toFixed(2)},
+                   total:{total:Math.round(hAcc.sf),home:Math.round(hAcc.sf/2),away:Math.round(hAcc.sf/2)}},
+              against:{average:{total:hGcg.toFixed(2),home:hGcg.toFixed(2),away:hGcg.toFixed(2)},
+                       total:{total:Math.round(hAcc.sa),home:Math.round(hAcc.sa/2),away:Math.round(hAcc.sa/2)}}
+            }
+          };
+        }
+        if(aAcc.w>0){
+          const aGpg=aAcc.sf/aAcc.w;
+          const aGcg=aAcc.sa/aAcc.w;
+          awayStats={
+            _weighted:true, _gp:aAcc.gp, _weight:aAcc.w,
+            fixtures:{played:{total:aAcc.gp,home:aAcc.gp,away:aAcc.gp}},
+            goals:{
+              for:{average:{total:aGpg.toFixed(2),home:aGpg.toFixed(2),away:aGpg.toFixed(2)},
+                   total:{total:Math.round(aAcc.sf),home:Math.round(aAcc.sf/2),away:Math.round(aAcc.sf/2)}},
+              against:{average:{total:aGcg.toFixed(2),home:aGcg.toFixed(2),away:aGcg.toFixed(2)},
+                       total:{total:Math.round(aAcc.sa),home:Math.round(aAcc.sa/2),away:Math.round(aAcc.sa/2)}}
+            }
+          };
+        }
+
+        // Store weighted game count for sample gate and detail text
+        if(homeStats)homeStats._gp=hAcc.gp;
+        if(awayStats)awayStats._gp=aAcc.gp;
+
+      } else {
+        // Club teams — fetch from their domestic league
+        // Try current season first, fall back to previous if mid-season changeover
+        let resolvedSeason=seasons[0];
+        for(const season of seasons){
+          try{
+            const hUrl='/teams/statistics?league='+f.league.id+'&season='+season+'&team='+f.teams.home.id;
+            const aUrl='/teams/statistics?league='+f.league.id+'&season='+season+'&team='+f.teams.away.id;
+            // Sequential, not Promise.all — see note above
+            const hs=await afFetch(hUrl);
+            const as=await afFetch(aUrl);
+            // Capture the very first attempt's raw response for debugging, regardless of success
+            if(window.SE_DEBUG&&!window.SE_DEBUG.captured){
+              window.SE_DEBUG.captured=true;
+              window.SE_DEBUG.fixture=f.teams.home.name+' vs '+f.teams.away.name+' ('+f.league.name+', league '+f.league.id+', season '+season+')';
+              window.SE_DEBUG.homeUrl=hUrl;
+              window.SE_DEBUG.homeRaw=hs;
+              window.SE_DEBUG.awayRaw=as;
+            }
+            const hPlayed=hs.response&&hs.response.fixtures&&hs.response.fixtures.played;
+            const aPlayed=as.response&&as.response.fixtures&&as.response.fixtures.played;
+            const hG=(hPlayed&&(hPlayed.home||hPlayed.total))||0;
+            const aG=(aPlayed&&(aPlayed.away||aPlayed.total))||0;
+            if(hG>0||aG>0){homeStats=hs.response;awayStats=as.response;resolvedSeason=season;break;}
+          }catch(e){
+            if(window.SE_DEBUG&&!window.SE_DEBUG.captured){
+              window.SE_DEBUG.captured=true;
+              window.SE_DEBUG.fixture=f.teams.home.name+' vs '+f.teams.away.name+' ('+f.league.name+', league '+f.league.id+', season '+season+')';
+              window.SE_DEBUG.error=e.message;
+            }
+          }
+        }
+        // Store the season that worked so player fetch uses the same one
+        f._resolvedSeason=resolvedSeason;
+
+        // ── RECENT FORM FETCH ───────────────────────────────────────────────
+        // Fetch last 10 fixtures for each club team and compute a form-weighted
+        // goals average. Blended 60% recent form / 40% full season stats.
+        // This replaces September's results carrying the same weight as last week.
+        // Only fetched when we have season stats (avoids wasting calls on fixtures
+        // that will be skipped by the sample gate anyway).
+        if(homeStats&&awayStats){
+          try{
+            const hForm=await afFetch('/fixtures?team='+f.teams.home.id+'&last=10&season='+resolvedSeason);
+            const aForm=await afFetch('/fixtures?team='+f.teams.away.id+'&last=10&season='+resolvedSeason);
+            const calcFormAvg=(fixtures,teamId,side)=>{
+              const finished=(fixtures.response||[]).filter(g=>g.fixture.status.short==='FT');
+              if(!finished.length)return null;
+              let gf=0,ga=0;
+              finished.forEach(g=>{
+                const isHome=g.teams.home.id===teamId;
+                gf+=isHome?g.goals.home:g.goals.away;
+                ga+=isHome?g.goals.away:g.goals.home;
+              });
+              return{scored:gf/finished.length,conceded:ga/finished.length,gp:finished.length};
+            };
+            const hRecent=calcFormAvg(hForm,f.teams.home.id,'home');
+            const aRecent=calcFormAvg(aForm,f.teams.away.id,'away');
+            if(hRecent){homeStats._recentScored=hRecent.scored;homeStats._recentConceded=hRecent.conceded;homeStats._recentGP=hRecent.gp;}
+            if(aRecent){awayStats._recentScored=aRecent.scored;awayStats._recentConceded=aRecent.conceded;awayStats._recentGP=aRecent.gp;}
+          }catch(e){}
+        }
+      }
+
+      // ── PLAYER DATA FETCH ─────────────────────────────────────────────────
+      // Player fetches are currently disabled — each fixture costs 2 extra calls
+      // (home + away) which adds ~40s to the scan for no meaningful gain since
+      // player ratings are unreliably populated outside the top 5 leagues.
+      // Re-enable by uncommenting the fetch block below when API speed improves.
+      let homePlayers=[], awayPlayers=[];
+      if(false&&homeStats&&awayStats){
+      const playerLeagueId=f.league.id;
+      // Use the season that actually returned stats for this league — clubs often
+      // run on season 2025 (the 2025/26 season) even though currentYear is 2026.
+      // Using the wrong season returns empty player data silently.
+      const playerSeason=isIntl?2026:(f._resolvedSeason||seasons[0]);
+      try{
+        const hPl=await afFetch('/players?team='+f.teams.home.id+'&season='+playerSeason+(isIntl?'&league=1':'&league='+playerLeagueId));
+        if(hPl.response){
+          homePlayers=hPl.response
+            .filter(p=>p.statistics&&p.statistics[0]&&parseFloat(p.statistics[0].games&&p.statistics[0].games.minutes||0)>=45)
+            .map(p=>({
+              name:p.player.name,
+              rating:parseFloat((p.statistics[0].games&&p.statistics[0].games.rating)||0)||0,
+              goals:(p.statistics[0].goals&&p.statistics[0].goals.total)||0,
+              assists:(p.statistics[0].goals&&p.statistics[0].goals.assists)||0,
+              minutes:parseFloat((p.statistics[0].games&&p.statistics[0].games.minutes)||0),
+              position:(p.statistics[0].games&&p.statistics[0].games.position)||'',
+              id:p.player.id
+            }))
+            .sort((a,b)=>b.rating-a.rating)
+            .slice(0,5);
+        }
+      }catch(e){}
+      try{
+        const aPl=await afFetch('/players?team='+f.teams.away.id+'&season='+playerSeason+(isIntl?'&league=1':'&league='+playerLeagueId));
+        if(aPl.response){
+          awayPlayers=aPl.response
+            .filter(p=>p.statistics&&p.statistics[0]&&parseFloat(p.statistics[0].games&&p.statistics[0].games.minutes||0)>=45)
+            .map(p=>({
+              name:p.player.name,
+              rating:parseFloat((p.statistics[0].games&&p.statistics[0].games.rating)||0)||0,
+              goals:(p.statistics[0].goals&&p.statistics[0].goals.total)||0,
+              assists:(p.statistics[0].goals&&p.statistics[0].goals.assists)||0,
+              minutes:parseFloat((p.statistics[0].games&&p.statistics[0].games.minutes)||0),
+              position:(p.statistics[0].games&&p.statistics[0].games.position)||'',
+              id:p.player.id
+            }))
+            .sort((a,b)=>b.rating-a.rating)
+            .slice(0,5);
+        }
+      }catch(e){}
+      } // end if(homeStats&&awayStats) player fetch guard
+
+      // Note: if stats are null here, buildTipPrediction will return null and
+      // the match is skipped — no fake predictions ever shown
+      // ── HEAD-TO-HEAD FETCH ────────────────────────────────────────────────
+      // Fetch all available H2H fixtures between these two teams.
+      // One extra API call per fixture (~150ms + network) — worth the accuracy
+      // gain since H2H history can significantly differ from season averages.
+      let h2hData=null;
+      if(homeStats&&awayStats){
+        try{
+          const h2h=await afFetch('/fixtures/headtohead?h2h='+f.teams.home.id+'-'+f.teams.away.id+'&last=10');
+          if(h2h.response&&h2h.response.length>0){
+            h2hData=h2h.response.filter(g=>
+              // Only use finished games with valid scores
+              g.fixture.status.short==='FT'&&
+              g.score.fulltime.home!==null&&
+              g.score.fulltime.away!==null
+            );
+          }
+        }catch(e){}
+      }
+      // Look up market odds for this fixture (pre-fetched above)
+      const hKey=f.teams.home.name.toLowerCase().slice(0,8);
+      const aKey=f.teams.away.name.toLowerCase().slice(0,8);
+      const fixtureOdds=oddsMap[hKey+'|'+aKey]||null;
+
+      matchData.push({fixture:f,home:homeStats,away:awayStats,tier:leagueTier(f.league.id),isIntl,homePlayers,awayPlayers,h2hData,odds:fixtureOdds});
+      const remaining=toProcess.length-(i+1);
+      const etaSec=Math.round(remaining*2*(SE_MIN_GAP_MS/1000));
+      const etaText=etaSec>60?Math.ceil(etaSec/60)+' min left':etaSec+'s left';
+      setProgress('Step 2 of 4 — Fetching team stats',
+        (i+1)+'/'+toProcess.length+': '+mHomeName(f)+' vs '+mAwayName(f)+' ('+f.league.name+') · ~'+etaText,
+        15+Math.round((i+1)/toProcess.length*45));
+    }
+
+
+    // Show debug panel if enabled, regardless of outcome
+    if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&window.SE_DEBUG.captured){
+      const dbg=window.SE_DEBUG;
+      // League inspector — always shown when debug is enabled
+      const ls=window.SE_LEAGUE_SUMMARY||[];
+      let dbgText='══ LEAGUE INSPECTOR (all scheduled fixtures today) ══\n';
+      dbgText+='Tier  │ ID     │ Fixtures │ League\n';
+      dbgText+='──────┼────────┼──────────┼──────────────────────────────────\n';
+      ls.forEach(l=>{
+        const tierStr=String(l.tier).padStart(5);
+        const idStr=String(l.id).padStart(6);
+        const countStr=String(l.count).padStart(8);
+        const flag=l.tier<=10?' ⚠️ UNKNOWN ID':l.tier<=30?' ↓ low tier':'';
+        dbgText+=tierStr+' │ '+idStr+' │ '+countStr+' │ '+l.name+' ('+l.country+')'+flag+'\n';
+      });
+      dbgText+='\n══ FIXTURE STAT REQUEST DEBUG ══\n';
+      dbgText+='FIXTURE TESTED: '+dbg.fixture+'\n\nREQUEST URL:\n'+(dbg.homeUrl||'n/a')+'\n\n';
+      if(dbg.error){
+        dbgText+='REQUEST FAILED WITH ERROR:\n'+dbg.error;
+      } else {
+        dbgText+='HOME TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.homeRaw,null,2).slice(0,3000);
+        dbgText+='\n\nAWAY TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.awayRaw,null,2).slice(0,1500);
+      }
+      document.getElementById('tipsDebugContent').textContent=dbgText;
+      document.getElementById('tipsDebugPanel').style.display='block';
+    }
+
+    setProgress('Step 3 of 4 — Checking injuries','Fetching injury and suspension reports…',62);
+    const injuryMap={};
+    const injuryCheckCount=window.SE_PAID_TIER?Math.min(matchData.length,15):Math.min(matchData.length,6);
+    for(let i=0;i<injuryCheckCount;i++){
+      if(tipsCancelled)throw new SECancelled();
+      const f=matchData[i].fixture;
+      try{const inj=await afFetch('/injuries?fixture='+f.fixture.id);injuryMap[f.fixture.id]=inj.response||[];}
+      catch(e){injuryMap[f.fixture.id]=[];}
+    }
+
+    setProgress('Step 4 of 4 — Running Poisson models','Calculating scoreline probabilities…',85);
+    const predictions=matchData.map(md=>buildTipPrediction(md,injuryMap)).filter(Boolean);
+
+    // PRIMARY sort: confidence score (highest first) — league tier is tiebreaker only
+    predictions.sort((a,b)=>{
+      const diff=b.confidence-a.confidence;
+      if(Math.abs(diff)>0.005)return diff;  // meaningful confidence gap — use it
+      return b.tier-a.tier;                  // near-identical confidence — use tier as tiebreaker
+    });
+
+    // Apply confidence filter
+    // Thresholds are calibrated to the three-factor confidence system:
+    // HIGH: all three signals must be strong — genuinely rare
+    // MED:  reasonable scoreline probability and outcome certainty
+    let filtered=predictions;
+    if(cf==='high')filtered=predictions.filter(p=>p.confidence>0.45);
+    else if(cf==='med')filtered=predictions.filter(p=>p.confidence>0.28);
+
+    // Soft deduplicate — cap same scoreline at 3 appearances
+    const scoreCount={};
+    const deduped=[];
+    for(const p of filtered){
+      const sk=p.top[0].h+'-'+p.top[0].a;
+      scoreCount[sk]=(scoreCount[sk]||0)+1;
+      if(scoreCount[sk]<=3)deduped.push(p);
+    }
+
+    const top10=deduped.slice(0,10);
+    document.getElementById('tipsProgress').style.display='none';
+    if(!top10.length){
+      document.getElementById('tipsErr').textContent='Found '+total+' fixtures and processed '+toProcess.length+' of them, but '+matchData.length+' returned no usable team stats from the API (predictions skipped to avoid showing fake data), and '+predictions.length+' passed stats but were filtered out by your confidence setting. Try setting Confidence Level to \'Show All\', or check back when more fixtures have stats published closer to kick-off.';
+      document.getElementById('tipsEmpty').style.display='block';
+      return;
+    }
+    renderTips(top10,today,total,toProcess.length);
+  }catch(e){
+    if(e instanceof SECancelled||e.name==='SECancelled'){
+      document.getElementById('tipsErr').textContent='⏹️ Scan cancelled. No tips were generated.';
+      document.getElementById('tipsProgress').style.display='none';
+    } else {
+      document.getElementById('tipsErr').textContent='Error: '+e.message+'. Check your API-Football key in Settings.';
+      document.getElementById('tipsProgress').style.display='none';
+    }
+  }
+  finally{
+    tipsRunning=false;tipsCancelled=false;
+    btn.disabled=false;btn.textContent='🔥 Generate Today’s Tips';
+    document.getElementById('tipsCancelBtn').style.display='none';
+  }
+}
+
+function buildTipPrediction(md,injuryMap){
+  const f=md.fixture;
+  const hName=f.teams.home.name,aName=f.teams.away.name;
+  const leagueName=f.league.name,country=f.league.country;
+  const ko=f.fixture.date;
+  const tier=md.tier||30;
+  const neutralKeywords=['World Cup','Nations League','Euro ','Copa America','African Cup','Gold Cup','Asian Cup','Olympics','International'];
+  const venue=neutralKeywords.some(n=>leagueName.includes(n))?'neutral':'home';
+  // Tier-adjusted league averages for Poisson baseline
+  const lgH=tier>=85?1.55:tier>=70?1.45:1.35;
+  const lgA=tier>=85?1.15:tier>=70?1.10:1.05;
+  // Extract stats — try match context first, fall back to overall totals
+  // For international/neutral games use total averages; for home/away use context-specific
+  const isIntl=md.isIntl||false;
+  const hCtx=isIntl?'total':'home';
+  const aCtx=isIntl?'total':'away';
+  const homeAtk=extractGoalAvg(md.home,'for',hCtx)||extractGoalAvg(md.home,'for','total')||null;
+  const homeDef=extractGoalAvg(md.home,'against',hCtx)||extractGoalAvg(md.home,'against','total')||null;
+  const awayAtk=extractGoalAvg(md.away,'for',aCtx)||extractGoalAvg(md.away,'for','total')||null;
+  const awayDef=extractGoalAvg(md.away,'against',aCtx)||extractGoalAvg(md.away,'against','total')||null;
+  const hasStats=!!(homeAtk&&homeDef&&awayAtk&&awayDef);
+  // No real stats — skip this match entirely rather than faking a prediction
+  if(!hasStats)return null;
+  // Sample size reliability gate — a team with only a handful of games played
+  // can produce a deceptively concentrated, "high confidence" Poisson output
+  // purely from small-sample noise (e.g. 2 games at 3-0 looks identical to the
+  // model as 20 games averaging 3-0). Without this, thin-data fixtures can
+  // outrank genuinely well-supported predictions — this is the main source of
+  // "slop" in the rankings. Games played comes from the same fixtures.played
+  // block already used elsewhere in the scan.
+  const gp=(statsObj,context)=>{
+    const fp=statsObj&&statsObj.fixtures&&statsObj.fixtures.played;
+    if(!fp)return 0;
+    return parseInt(fp[context]||fp.total||0,10)||0;
+  };
+  const homeGP=gp(md.home,hCtx)||gp(md.home,'total');
+  const awayGP=gp(md.away,aCtx)||gp(md.away,'total');
+  const minGP=Math.min(homeGP,awayGP);
+  // Hard gate: sample too thin to trust at all — skip rather than show a
+  // falsely confident scoreline. International tournaments (World Cup, Euros
+  // etc.) have a lower threshold because teams can only play 3 group-stage
+  // games before knockouts — a full group stage IS a meaningful sample in
+  // that context. Club leagues need at least 5 to filter out early-season noise.
+  const MIN_SAMPLE_GAMES=isIntl?2:5;
+  if(minGP<MIN_SAMPLE_GAMES)return null;
+  // Soft penalty: scale confidence down for samples that clear the hard gate
+  // but are still thin, so they rank below well-supported predictions.
+  // International scale tops out at 5+ games (quarter-final stage onwards).
+  // Club scale tops out at 10+ games (~quarter of a league season).
+  const fullSampleTarget=isIntl?5:10;
+  const sampleReliability=Math.min(1,(minGP-MIN_SAMPLE_GAMES)/(fullSampleTarget-MIN_SAMPLE_GAMES)+0.5);
+  // Sanity clamp — stops outlier stats distorting the model
+  const clamp=(v,lo,hi)=>Math.min(Math.max(v,lo),hi);
+  let hAtk=clamp(homeAtk,0.3,5.0);
+  let hDef=clamp(homeDef,0.3,5.0);
+  let aAtk=clamp(awayAtk,0.3,5.0);
+  let aDef=clamp(awayDef,0.3,5.0);
+
+  // ── RECENT FORM BLEND (club fixtures only) ────────────────────────────────
+  // 60% recent form (last 10 games) / 40% full season stats.
+  // Recent form is stored on the stats object by the fetch loop above.
+  // Not applied to international fixtures — tournament teams have too few
+  // recent games for this to be meaningful.
+  let formNote='';
+  if(!isIntl&&md.home&&md.home._recentScored!=null&&md.away&&md.away._recentScored!=null){
+    const hRS=clamp(md.home._recentScored,0.3,5.0);
+    const hRC=clamp(md.home._recentConceded,0.3,5.0);
+    const aRS=clamp(md.away._recentScored,0.3,5.0);
+    const aRC=clamp(md.away._recentConceded,0.3,5.0);
+    hAtk=(hAtk*0.4)+(hRS*0.6);
+    hDef=(hDef*0.4)+(hRC*0.6);
+    aAtk=(aAtk*0.4)+(aRS*0.6);
+    aDef=(aDef*0.4)+(aRC*0.6);
+    formNote='\n  Form (last '+md.home._recentGP+' games '+hName+' / '+md.away._recentGP+' games '+aName+') — 60% weight:'
+      +'\n  '+hName+': '+hRS.toFixed(2)+' scored, '+hRC.toFixed(2)+' conceded'
+      +'\n  '+aName+': '+aRS.toFixed(2)+' scored, '+aRC.toFixed(2)+' conceded';
+  }
+
+  // ── HEAD-TO-HEAD BLENDING ─────────────────────────────────────────────────
+  // Season stats tell us how a team performs on average across all opponents.
+  // H2H history tells us how they perform specifically against this opponent —
+  // which can differ significantly (e.g. a team that averages 1.5 goals/game
+  // but consistently scores 3+ against this specific opponent).
+  //
+  // Blend: 50% season stats, 50% H2H stats (user-selected equal weighting).
+  //
+  // Recency discount: H2H games are weighted by how recent they are.
+  // Games in the last 12 months: weight 1.0
+  // 1-2 years ago: weight 0.7
+  // 2-3 years ago: weight 0.4
+  // Older: weight 0.2
+  // This prevents a dominant result from 5 years ago with different squads
+  // from carrying the same weight as last season's meeting.
+  //
+  // If no H2H data: fall back to 100% season stats (no change).
+  let h2hGamesUsed=0;
+  let h2hNote='';
+  const h2hFixtures=md.h2hData||[];
+  if(h2hFixtures.length>0){
+    const homeId=f.teams.home.id;
+    const nowMs=Date.now();
+    let h2hHomeGoals=0,h2hHomeConceded=0,h2hAwayGoals=0,h2hAwayConceded=0,totalW=0;
+    h2hFixtures.forEach(g=>{
+      const gameDate=new Date(g.fixture.date);
+      const ageYears=(nowMs-gameDate.getTime())/(1000*60*60*24*365);
+      const recencyW=ageYears<=1?1.0:ageYears<=2?0.7:ageYears<=3?0.4:0.2;
+      const isHomeTeam=g.teams.home.id===homeId;
+      const goalsFor=isHomeTeam?g.score.fulltime.home:g.score.fulltime.away;
+      const goalsConceded=isHomeTeam?g.score.fulltime.away:g.score.fulltime.home;
+      const oppGoalsFor=isHomeTeam?g.score.fulltime.away:g.score.fulltime.home;
+      const oppGoalsConceded=isHomeTeam?g.score.fulltime.home:g.score.fulltime.away;
+      h2hHomeGoals+=goalsFor*recencyW;
+      h2hHomeConceded+=goalsConceded*recencyW;
+      h2hAwayGoals+=oppGoalsFor*recencyW;
+      h2hAwayConceded+=oppGoalsConceded*recencyW;
+      totalW+=recencyW;
+    });
+    if(totalW>0){
+      const h2hHomeAtk=clamp(h2hHomeGoals/totalW,0.3,5.0);
+      const h2hHomeDef=clamp(h2hHomeConceded/totalW,0.3,5.0);
+      const h2hAwayAtk=clamp(h2hAwayGoals/totalW,0.3,5.0);
+      const h2hAwayDef=clamp(h2hAwayConceded/totalW,0.3,5.0);
+      // 25% H2H / 75% season stats — H2H acts as a correction signal rather
+      // than reshaping the prediction. A small stale sample shouldn't carry
+      // equal weight to a full current season of evidence.
+      hAtk=(hAtk*0.75)+(h2hHomeAtk*0.25);
+      hDef=(hDef*0.75)+(h2hHomeDef*0.25);
+      aAtk=(aAtk*0.75)+(h2hAwayAtk*0.25);
+      aDef=(aDef*0.75)+(h2hAwayDef*0.25);
+      h2hGamesUsed=h2hFixtures.length;
+      h2hNote='\n\nHead-to-head ('+h2hGamesUsed+' meetings, recency-weighted, 25% influence):\n  '+hName+': '+h2hHomeAtk.toFixed(2)+' scored, '+h2hHomeDef.toFixed(2)+' conceded vs this opponent\n  '+aName+': '+h2hAwayAtk.toFixed(2)+' scored, '+h2hAwayDef.toFixed(2)+' conceded vs this opponent';
+    }
+  } else {
+    h2hNote='\n\nHead-to-head: no previous meetings found — using season stats only';
+  }
+
+  let{lHome,lAway}=calcLambdas(hAtk,hDef,aAtk,aDef,lgH,lgA,venue);
+
+  // ── SMARTER INJURY WEIGHTING ──────────────────────────────────────────────
+  // Old approach: flat 5% reduction per injured player, capped at 25%.
+  // New approach: cross-reference injuries against the team's key players
+  // (top 5 by rating). If a key player is out, the reduction is proportional
+  // to their rating — a 7.5-rated striker missing hits much harder than a
+  // bench player. Non-key injuries still apply the flat 5% fallback.
+  const injuries=injuryMap[f.fixture.id]||[];
+  const hi=injuries.filter(inj=>inj.team&&inj.team.id===f.teams.home.id);
+  const ai=injuries.filter(inj=>inj.team&&inj.team.id===f.teams.away.id);
+  const homePlayers=md.homePlayers||[];
+  const awayPlayers=md.awayPlayers||[];
+  const injuryTags=[];
+
+  const calcInjuryReduction=(injuredList,keyPlayers)=>{
+    if(!injuredList.length)return 0;
+    let totalReduction=0;
+    injuredList.forEach(inj=>{
+      const injId=inj.player&&inj.player.id;
+      const keyMatch=keyPlayers.find(kp=>kp.id===injId);
+      if(keyMatch&&keyMatch.rating>0){
+        // Key player: reduction proportional to rating (7.0 base → ~8%, 8.5 → ~15%)
+        const r=Math.min(Math.max(keyMatch.rating,6.0),10.0);
+        totalReduction+=(r-6.0)/4.0*0.15+0.05; // ranges 5% (rated 6) to 20% (rated 10)
+      } else {
+        totalReduction+=0.05; // non-key player flat 5%
+      }
+    });
+    return Math.min(totalReduction,0.35); // hard cap 35% even with multiple key absences
+  };
+
+  const hReduction=calcInjuryReduction(hi,homePlayers);
+  const aReduction=calcInjuryReduction(ai,awayPlayers);
+  if(hReduction>0){
+    lHome=Math.max(0.2,lHome*(1-hReduction));
+    const keyOut=hi.filter(inj=>homePlayers.find(kp=>kp.id===(inj.player&&inj.player.id)));
+    injuryTags.push(hName+': '+hi.length+' doubt'+(hi.length>1?'s':'')+(keyOut.length?' (incl. '+keyOut.length+' key player'+(keyOut.length>1?'s':'')+')'  :''));
+  }
+  if(aReduction>0){
+    lAway=Math.max(0.2,lAway*(1-aReduction));
+    const keyOut=ai.filter(inj=>awayPlayers.find(kp=>kp.id===(inj.player&&inj.player.id)));
+    injuryTags.push(aName+': '+ai.length+' doubt'+(ai.length>1?'s':'')+(keyOut.length?' (incl. '+keyOut.length+' key player'+(keyOut.length>1?'s':'')+')'  :''));
+  }
+  const rawMatrix=buildMatrix(lHome,lAway,6);
+  // Apply Dixon-Coles correction to the four low-scoring scorelines
+  const matrix=applyDixonColes(rawMatrix,lHome,lAway);
+  const outcomes=calcOutcomes(matrix,6);
+
+  // ── MARKET ODDS BLEND ─────────────────────────────────────────────────────
+  // If bookmaker odds are available for this fixture, blend the market's implied
+  // outcome probabilities with Poisson's outcome probabilities.
+  // Blend: 30% market / 70% Poisson — market calibrates direction without
+  // overriding the scoreline distribution.
+  // Method: scale the matrix rows to match blended outcome probabilities.
+  // This preserves the relative scoreline probabilities within each outcome
+  // while adjusting how much total probability sits in each result bucket.
+  let oddsNote='';
+  const mktOdds=md.odds||null;
+  let blendedMatrix=matrix;
+  let blendedOutcomes=outcomes;
+  if(mktOdds){
+    const blendedHW=(outcomes.hw*0.7)+(mktOdds.hw*0.3);
+    const blendedD=(outcomes.d*0.7)+(mktOdds.d*0.3);
+    const blendedAW=(outcomes.aw*0.7)+(mktOdds.aw*0.3);
+    // Scale matrix cells to match blended outcome totals
+    blendedMatrix=matrix.map((row,h)=>row.map((p,a)=>{
+      if(outcomes.hw>0&&h>a)return p*(blendedHW/outcomes.hw);
+      if(outcomes.d>0&&h===a)return p*(blendedD/outcomes.d);
+      if(outcomes.aw>0&&h<a)return p*(blendedAW/outcomes.aw);
+      return p;
+    }));
+    // Renormalise
+    let tot=0;
+    blendedMatrix.forEach(r=>r.forEach(p=>{tot+=p;}));
+    blendedMatrix=blendedMatrix.map(r=>r.map(p=>p/tot));
+    blendedOutcomes={hw:blendedHW,d:blendedD,aw:blendedAW};
+    oddsNote='\n\nMarket odds blend (30% market / 70% Poisson):'
+      +'\n  Market: '+hName+' win '+(mktOdds.hw*100).toFixed(1)+'% · Draw '+(mktOdds.d*100).toFixed(1)+'% · '+aName+' win '+(mktOdds.aw*100).toFixed(1)+'%'
+      +'\n  Blended: '+hName+' win '+(blendedHW*100).toFixed(1)+'% · Draw '+(blendedD*100).toFixed(1)+'% · '+aName+' win '+(blendedAW*100).toFixed(1)+'%';
+  }
+  const top=topN(blendedMatrix,6,6);
+
+  // ── SCORELINE SELECTION — >8% THRESHOLD ──────────────────────────────────
+  // Only consider scorelines with >8% individual probability, then pick the
+  // highest among those. Falls back to peak if nothing clears 8%.
+  const THRESHOLD=0.08;
+  const aboveThreshold=top.filter(s=>s.p>=THRESHOLD);
+  const predicted=aboveThreshold.length>0?aboveThreshold[0]:top[0];
+  const predH=predicted.h, predA=predicted.a;
+
+  // ── CONFIDENCE CALCULATION — THREE-FACTOR GATE ───────────────────────────
+  // Previous approach: (resultProb × 0.5) + (proximityScore × 0.5)
+  // Problem: this inflated every game. An evenly-matched 50/50 game scored
+  // 29% confidence. Virtually nothing failed the 18% HIGH threshold, making
+  // the label meaningless.
+  //
+  // New approach: three independent signals that each must be strong for a
+  // game to qualify as high confidence. All three are normalised to [0,1]
+  // and combined with weights that reflect their actual predictive value.
+  //
+  // Signal 1 — P(top scoreline): raw probability of the specific predicted
+  //   score. The single most honest measure of scoreline predictability.
+  //   A good game has >14%. Below 10% is noise.
+  //   Weight: 0.45
+  //
+  // Signal 2 — Outcome certainty: P(winning direction — home/draw/away).
+  //   If the model can't confidently say who wins, exact scoreline is a guess.
+  //   Normalised: (certainty - 0.33) / 0.67 so 33% (random) = 0, 100% = 1.
+  //   Weight: 0.35
+  //
+  // Signal 3 — Dominance ratio: how much more likely is top scoreline vs 2nd.
+  //   A 1.5x ratio = real separation. 1.0x = equally plausible alternatives.
+  //   Normalised: capped at 2.0x ratio → score 0 to 1.
+  //   Weight: 0.20
+  //
+  // Total xG penalty: high-scoring expected games (total xG > 2.8) are
+  //   fundamentally harder to pin to an exact score. Apply a scaling penalty.
+
+  const topScoreP=predicted.p;
+  const resultProb=predH>predA?blendedOutcomes.hw:predH===predA?blendedOutcomes.d:blendedOutcomes.aw;
+  const maxOutcome=Math.max(blendedOutcomes.hw,blendedOutcomes.d,blendedOutcomes.aw);
+  const second=top[1]||{p:0.001};
+  const dominanceRatio=Math.min(2.0,topScoreP/(second.p||0.001));
+
+  const sig1=Math.min(1,topScoreP/0.25);                         // normalised: 25% = max
+  const sig2=Math.max(0,(maxOutcome-0.33)/0.67);                 // normalised: certainty above random
+  const sig3=Math.min(1,(dominanceRatio-1.0)/1.0);               // normalised: 1x=0, 2x=1
+
+  const totalXG=lHome+lAway;
+  const xgPenalty=totalXG>2.8?Math.max(0.5,1-(totalXG-2.8)*0.1):1.0; // penalty above 2.8 xG
+
+  const rawConfidence=((sig1*0.45)+(sig2*0.35)+(sig3*0.20))*xgPenalty;
+  const confidence=rawConfidence*sampleReliability;
+
+  // Proximity score kept for display purposes only (shown in detail panel)
+  let proximityScore=0;
+  for(let h=0;h<=6;h++){
+    for(let a=0;a<=6;a++){
+      const diff=Math.abs(h-predH)+Math.abs(a-predA);
+      const w=diff===0?1.0:diff===1?0.4:diff===2?0.15:0;
+      if(w>0)proximityScore+=blendedMatrix[h][a]*w;
+    }
+  }
+
+  // Format player display for tip cards and detail view
+  const fmtPlayers=(players)=>players.slice(0,3).map(p=>
+    p.name+(p.rating>0?' ★'+p.rating.toFixed(1):'')+(p.goals>0?' ⚽'+p.goals:'')+(p.assists>0?' 🅰️'+p.assists:'')
+  );
+  const hTopPlayers=fmtPlayers(homePlayers);
+  const aTopPlayers=fmtPlayers(awayPlayers);
+
+  const statsLabel=isIntl&&(md.home&&md.home._weighted)?
+    'Weighted across WC2026, qualifiers, Euros/Copa, WC2022 & friendlies ('+homeGP+' games '+hName+' / '+awayGP+' games '+aName+')':
+    'Season stats (per game, '+homeGP+' games '+hName+' / '+awayGP+' games '+aName+')';
+
+  const detail='Expected goals: '+hName+' '+lHome.toFixed(2)+' — '+aName+' '+lAway.toFixed(2)
+    +'\n\n'+statsLabel+':\n  '+hName+': '+hAtk.toFixed(2)+' scored, '+hDef.toFixed(2)+' conceded'
+    +'\n  '+aName+': '+aAtk.toFixed(2)+' scored, '+aDef.toFixed(2)+' conceded'
+    +formNote
+    +h2hNote
+    +oddsNote
+    +(hTopPlayers.length?'\n\nKey players — '+hName+':\n  '+hTopPlayers.join('\n  '):'')
+    +(aTopPlayers.length?'\n\nKey players — '+aName+':\n  '+aTopPlayers.join('\n  '):'')
+    +'\n\nOutcome probabilities (after all adjustments):\n  '+hName+' win: '+pct(blendedOutcomes.hw)
+    +'\n  Draw: '+pct(blendedOutcomes.d)
+    +'\n  '+aName+' win: '+pct(blendedOutcomes.aw)
+    +'\n  (Dixon-Coles correction applied to 0-0, 1-0, 0-1, 1-1)'
+    +'\n\nConfidence breakdown (three-factor model):'
+    +'\n  P(scoreline): '+(topScoreP*100).toFixed(1)+'% (signal 1, weight 45%)'
+    +'\n  Outcome certainty: '+(maxOutcome*100).toFixed(1)+'% → '+(sig2*100).toFixed(1)+'% normalised (signal 2, weight 35%)'
+    +'\n  Dominance ratio: '+dominanceRatio.toFixed(2)+'x → '+(sig3*100).toFixed(1)+'% normalised (signal 3, weight 20%)'
+    +(xgPenalty<1?'\n  Total xG penalty: '+totalXG.toFixed(1)+' xG → '+((1-xgPenalty)*100).toFixed(0)+'% penalty applied':'' )
+    +'\n  Combined confidence: '+(rawConfidence*100).toFixed(1)+'%'+(sampleReliability<1?' (penalised for sample size)':'')
+    +'\n  Predicted via: '+(aboveThreshold.length>0?'above-8% threshold ('+aboveThreshold.length+' scorelines qualified)':'peak fallback — no scoreline cleared 8%')
+    +(injuryTags.length?'\n\nInjury/doubt flags:\n  '+injuryTags.join('\n  '):'')
+    +'\n\nVenue: '+(venue==='neutral'?'Neutral — home advantage removed':'Standard home/away')+(isIntl?' (International — stats weighted across all competitions)':'')
+    +'\nLeague tier: '+tier+'/100 (tiebreaker only)'
+    +(sampleReliability<1?'\n⚠️ Reduced confidence weighting — limited sample size ('+minGP+' competitive games)':'');
+
+  return{homeName:hName,awayName:aName,leagueName,country,ko,venue,lHome,lAway,
+    top,predicted,outcomes:blendedOutcomes,confidence,rawConfidence,resultProb,proximityScore,
+    dominanceRatio,minGP,injuryTags,hasStats,tier,detail,
+    homePlayers,awayPlayers,hTopPlayers,aTopPlayers,isIntl};
+}
+function renderTips(tips,date,totalFound,eligibleCount){
+  const ds=new Date(date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const tierTag=window.SE_PAID_TIER?'⚡ Pro plan — current season data':'Free plan — 2024 season data';
+  const genTime=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  let html='<div style="margin-bottom:16px"><div class="tips-date">📅 '+ds+'</div><div class="tips-meta">Top '+tips.length+' predictions from '+(eligibleCount||totalFound||'?')+' matches analysed · Confidence ranked · '+tierTag+' · Generated '+genTime+'</div></div>';
+  tips.forEach((t,i)=>{
+    const rank=i+1;const rc=rank===1?'tip-rank-1':rank===2?'tip-rank-2':rank===3?'tip-rank-3':'tip-rank-n';
+    const cp=(t.confidence*100).toFixed(1);const cc=t.confidence>0.45?'conf-high':t.confidence>0.28?'conf-med':'conf-low';const col=t.confidence>0.45?'var(--green)':t.confidence>0.28?'var(--draw)':'var(--orange)';
+    const koDate=t.ko?new Date(t.ko):null;
+    const koTime=koDate?koDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'TBD';
+    const koDay=koDate?koDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'';
+    const koDisplay=koDate?(koDay+' · '+koTime):'TBD';
+    // Dominance ratio indicator — built outside template literal to avoid nesting issues
+    const ratio=t.dominanceRatio||1;
+    const domLabel=ratio>=1.8?'Strong pick — well clear of alternatives':ratio>=1.4?'Moderate edge over next best':ratio>=1.1?'Narrow edge — alternatives close behind':'Near-equal alternatives';
+    const domCol=ratio>=1.8?'var(--green)':ratio>=1.4?'var(--draw)':'var(--orange)';
+    const domHtml='<div style="font-size:9px;margin-top:4px;color:'+domCol+'">'+ratio.toFixed(2)+'&times; more likely than next best &middot; '+domLabel+'</div>';
+    // Alternative scoreline cards
+    const altCards=t.top.slice(0,3).map((s,si)=>{
+      const relStr=si===0?'':(s.p>0&&t.predicted.p>0?' &middot; '+(t.predicted.p/s.p).toFixed(1)+'&times; behind top':'');
+      const border=si===0?'var(--accent)':'var(--border)';
+      return '<div style="background:var(--bg2);border:1px solid '+border+';border-radius:8px;padding:7px;text-align:center"><div style="font-size:14px;font-weight:900;color:white">'+s.h+'&ndash;'+s.a+'</div><div style="font-size:9px;color:var(--muted);margin-top:2px">'+pct(s.p)+relStr+'</div></div>';
+    }).join('');
+    html+=`<div class="tip-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="tip-rank ${rc}">${rank}</div><div style="text-align:right;font-size:10px;color:var(--dim)">${koDisplay}</div></div>
+      <div class="tip-competition">${t.leagueName}${t.country?' · '+t.country:''}</div>
+      <div class="tip-teams"><div class="tip-team"><div class="tip-team-name">${t.homeName}</div>${t.hTopPlayers&&t.hTopPlayers.length?'<div style="font-size:9px;color:var(--dim);margin-top:4px;line-height:1.6">'+t.hTopPlayers.slice(0,2).map(p=>'⭐ '+p).join('<br>')+'</div>':''}</div><div class="tip-vs">vs</div><div class="tip-team"><div class="tip-team-name">${t.awayName}</div>${t.aTopPlayers&&t.aTopPlayers.length?'<div style="font-size:9px;color:var(--dim);margin-top:4px;line-height:1.6">'+t.aTopPlayers.slice(0,2).map(p=>'⭐ '+p).join('<br>')+'</div>':''}</div></div>
+      <div class="tip-scoreline"><div class="tip-score-val">${t.predicted.h} – ${t.predicted.a}</div><div class="tip-score-label">Predicted Scoreline</div>${domHtml}</div>
+      <div class="tip-confidence"><div class="tip-conf-label">Confidence</div><div class="tip-conf-bar-wrap"><div class="tip-conf-bar" style="width:${Math.min(parseFloat(cp)*3,100)}%;background:${col}"></div></div><div class="tip-conf-pct ${cc}">${cp}%</div></div>
+      <div style="margin-bottom:8px">
+        <div class="bar-row" style="margin-bottom:5px"><div class="bar-label"><span style="font-size:10px">${t.homeName} Win</span><span style="font-size:10px">${pct(t.outcomes.hw)}</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pct(t.outcomes.hw)};background:var(--win)"></div></div></div>
+        <div class="bar-row" style="margin-bottom:5px"><div class="bar-label"><span style="font-size:10px">Draw</span><span style="font-size:10px">${pct(t.outcomes.d)}</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pct(t.outcomes.d)};background:var(--draw)"></div></div></div>
+        <div class="bar-row"><div class="bar-label"><span style="font-size:10px">${t.awayName} Win</span><span style="font-size:10px">${pct(t.outcomes.aw)}</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pct(t.outcomes.aw)};background:var(--lose)"></div></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${altCards}</div>
+      <div class="tip-meta-row">${t.venue!=='home'?'<span class="tip-tag tip-tag-venue">⚖️ Neutral venue</span>':''}${t.injuryTags.length?'<span class="tip-tag tip-tag-injury">🚑 '+t.injuryTags.length+' injury flag'+(t.injuryTags.length>1?'s':'')+'</span>':''}${t.isIntl?'<span class="tip-tag tip-tag-source">🌍 Multi-source intl stats</span>':'<span class="tip-tag tip-tag-source">'+(t.hasStats?'Live stats':'League avg')+'</span>'}</div>
+      <button class="tip-expand-btn" onclick="toggleTipDetail(${i})">▼ Full analysis</button>
+      <div class="tip-detail" id="tipDetail-${i}"><div class="tip-detail-text">${t.detail}</div></div>
+    </div>`;
+  });
+  html+='<div class="card" style="margin-top:4px"><p class="notice">⚠️ <strong>Important:</strong> Statistical predictions only — not guarantees. Bet responsibly.</p></div>';
+  document.getElementById('tipsList').innerHTML=html;
+}
+
+function toggleTipDetail(i){const d=document.getElementById('tipDetail-'+i);const btn=d.previousElementSibling;const open=d.style.display==='block';d.style.display=open?'none':'block';btn.textContent=open?'▼ Full analysis':'▲ Hide analysis';}
+;
+
+// ═══════════════════════════════════════════════════
+// SPORTS CONFIG
+// ═══════════════════════════════════════════════════
+const SPORTS={
+  football:{icon:'⚽',unit:'goals',maxScore:6,lgHome:1.5,lgAway:1.1,atkLabel:'Avg Goals Scored',defLabel:'Avg Goals Conceded',hint:'Free data: football-data.org · FBref.com · Understat.com',
+    leagues:[
+      {label:'🌍 World Cup 2026',fd:'WC',odds:'soccer_fifa_world_cup'},
+      {label:'🏆 Champions League',fd:'CL',odds:'soccer_uefa_champs_league'},
+      {label:'🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League',fd:'PL',odds:'soccer_epl'},
+      {label:'🇪🇸 La Liga',fd:'PD',odds:'soccer_spain_la_liga'},
+      {label:'🇩🇪 Bundesliga',fd:'BL1',odds:'soccer_germany_bundesliga'},
+      {label:'🇮🇹 Serie A',fd:'SA',odds:'soccer_italy_serie_a'},
+      {label:'🇫🇷 Ligue 1',fd:'FL1',odds:'soccer_france_ligue_one'},
+      {label:'🇳🇱 Eredivisie',fd:'DED',odds:'soccer_netherlands_eredivisie'},
+      {label:'🇵🇹 Primeira Liga',fd:'PPL',odds:'soccer_portugal_primeira_liga'},
+      {label:'🇧🇷 Brasileirão',fd:'BSA',odds:'soccer_brazil_campeonato'},
+      {label:'🇸🇦 Saudi Pro League',fd:null,odds:'soccer_saudi_professional_league'},
+      {label:'🇦🇪 UAE Pro League',fd:null,odds:'soccer_uae_arabian_gulf_league'},
+      {label:'🇶🇦 Qatar Stars League',fd:null,odds:null},
+      {label:'🇹🇷 Süper Lig',fd:null,odds:'soccer_turkey_super_league'},
+      {label:'🇯🇵 J1 League',fd:null,odds:'soccer_japan_j_league'},
+      {label:'🇰🇷 K League',fd:null,odds:'soccer_korea_kleague1'},
+      {label:'🇨🇳 Chinese Super League',fd:null,odds:'soccer_china_superleague'},
+      {label:'🇲🇽 Liga MX',fd:null,odds:'soccer_mexico_ligamx'},
+      {label:'🇺🇸 MLS',fd:null,odds:'soccer_usa_mls'},
+      {label:'🇦🇺 A-League',fd:null,odds:'soccer_australia_aleague'},
+      {label:'🌐 Other / Manual',fd:null,odds:null}
+    ]},
+  basketball:{icon:'🏀',unit:'pts ÷ 10',maxScore:6,lgHome:11.2,lgAway:10.8,atkLabel:'Avg Points Scored (÷10)',defLabel:'Avg Points Conceded (÷10)',hint:'Divide real points by 10 · Free stats: Basketball-Reference.com',
+    leagues:[
+      {label:'🏀 NBA',fd:null,odds:'basketball_nba'},
+      {label:'🇪🇺 EuroLeague',fd:null,odds:'basketball_euroleague'},
+      {label:'🇪🇸 ACB Spain',fd:null,odds:null},
+      {label:'🇹🇷 BSL Turkey',fd:null,odds:null},
+      {label:'🇦🇺 NBL Australia',fd:null,odds:'basketball_nbl'},
+      {label:'🌐 Other / Manual',fd:null,odds:null}
+    ]},
+  horseracing:{icon:'🏇',unit:'odds based',maxScore:0,lgHome:0,lgAway:0,atkLabel:'',defLabel:'',hint:'Free odds: Racing Post · Timeform · At The Races',
+    leagues:[
+      {label:'🇬🇧 Royal Ascot',fd:null,odds:'horse_racing_uk'},
+      {label:'🇬🇧 Cheltenham',fd:null,odds:'horse_racing_uk'},
+      {label:'🇬🇧 Epsom (Derby)',fd:null,odds:'horse_racing_uk'},
+      {label:'🇮🇪 Leopardstown',fd:null,odds:'horse_racing_ie'},
+      {label:'🇫🇷 ParisLongchamp',fd:null,odds:null},
+      {label:'🇦🇪 Meydan Dubai',fd:null,odds:null},
+      {label:'🇺🇸 US Racing',fd:null,odds:'horse_racing_us'},
+      {label:'🇦🇺 Melbourne Cup',fd:null,odds:'horse_racing_au'},
+      {label:'🌐 Other / Manual',fd:null,odds:null}
+    ]}
+};
+
+// SCORE ODDS DB — typical correct score odds
+const SCORE_ODDS=[
+  {h:0,a:0,odds:9.5},{h:1,a:0,odds:6.0},{h:2,a:0,odds:9.0},{h:3,a:0,odds:17.0},{h:4,a:0,odds:41.0},
+  {h:0,a:1,odds:7.5},{h:1,a:1,odds:5.5},{h:2,a:1,odds:7.5},{h:3,a:1,odds:15.0},{h:4,a:1,odds:34.0},
+  {h:0,a:2,odds:11.0},{h:1,a:2,odds:9.0},{h:2,a:2,odds:12.0},{h:3,a:2,odds:23.0},{h:4,a:2,odds:51.0},
+  {h:0,a:3,odds:19.0},{h:1,a:3,odds:15.0},{h:2,a:3,odds:21.0},{h:3,a:3,odds:41.0},
+  {h:0,a:4,odds:41.0},{h:1,a:4,odds:34.0},{h:2,a:4,odds:51.0},
+  {h:5,a:0,odds:81.0},{h:0,a:5,odds:81.0},{h:5,a:1,odds:101.0},{h:1,a:5,odds:101.0},
+  {h:4,a:3,odds:81.0},{h:3,a:4,odds:81.0},{h:5,a:2,odds:151.0},{h:2,a:5,odds:151.0},
+  {h:4,a:4,odds:151.0},{h:5,a:3,odds:201.0},{h:3,a:5,odds:201.0},
+  {h:5,a:4,odds:301.0},{h:4,a:5,odds:301.0},{h:5,a:5,odds:501.0},
+  {h:6,a:0,odds:201.0},{h:0,a:6,odds:201.0},{h:6,a:1,odds:251.0},{h:1,a:6,odds:251.0}
+];
+
+// ═══════════════════════════════════════════════════
+// VENUE NOTES
+// ═══════════════════════════════════════════════════
+const VENUE_NOTES={
+  home:'Standard home advantage applied — home team gets an attacking boost and defensive reduction.',
+  neutral:'Neutral venue — home advantage removed. Both teams treated as away sides. Applies to World Cup, Champions League finals, playoff finals.',
+  nearneutral:'Near-neutral — partial home advantage applied (50%). Applies to host nations, teams playing close to home, or one-leg knockouts.'
+};
+const VENUE_FACTORS={home:1.0,neutral:0.0,nearneutral:0.5};
+
+function setVenue(v,btn){predVenue=v;document.querySelectorAll('#vHome,#vNeutral,#vNear').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('venueNote').textContent=VENUE_NOTES[v];}
+function setVenueS(v,btn){sVenue=v;btn.closest('.venue-pills').querySelectorAll('.venue-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function setVenueD(n,v,btn){if(n===1)dVenue1=v;else dVenue2=v;btn.closest('.venue-pills').querySelectorAll('.venue-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function setFmtS(f,btn){sFmt=f;btn.closest('.venue-pills').querySelectorAll('.venue-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function setFmtD(f,btn){dFmt=f;btn.closest('.venue-pills').querySelectorAll('.venue-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.onload=()=>{
+  if(KEYS.af)document.getElementById('afApiKey').value=KEYS.af;
+  if(KEYS.oddsApi)document.getElementById('oddsApiKey').value=KEYS.oddsApi;
+  if(KEYS.fd)document.getElementById('fdApiKey').value=KEYS.fd;
+  try{
+    const paidPref=localStorage.getItem('se_paid_tier');
+    if(paidPref==='true'){window.SE_PAID_TIER=true;document.getElementById('paidTierToggle').checked=true;}
+  }catch{}
+  updateLiveBadge();updateUIForKeys();updateTipsUI();
+  setSport('football',document.querySelector('.sport-pill.active'));
+  initRunners();initLegs();
+};
+
+function saveKeys(){KEYS.af=document.getElementById('afApiKey').value.trim();KEYS.oddsApi=document.getElementById('oddsApiKey').value.trim();KEYS.fd=document.getElementById('fdApiKey').value.trim();try{localStorage.setItem('se_keys',JSON.stringify(KEYS))}catch{console.warn('localStorage unavailable — keys not persisted');}const t=document.getElementById('saveToast');t.style.display='block';setTimeout(()=>t.style.display='none',2500);updateLiveBadge();updateUIForKeys();updateTipsUI();}
+function updateLiveBadge(){document.getElementById('liveBadge').style.display=(KEYS.oddsApi||KEYS.fd||KEYS.af)?'inline':'none';}
+function updateUIForKeys(){document.getElementById('fdHint').style.display=KEYS.fd?'none':'block';updateLoadMatchesBtn();}
+
+function switchTab(name,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active');btn.classList.add('active');}
+function setOddsSubTab(name,btn){document.querySelectorAll('#tab-odds [id^="oddsTab-"]').forEach(s=>s.style.display='none');document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));document.getElementById('oddsTab-'+name).style.display='block';btn.classList.add('active');}
+
+// ═══════════════════════════════════════════════════
+// SPORT / LEAGUE
+// ═══════════════════════════════════════════════════
+function setSport(name,btn){
+  currentSport=name;
+  document.querySelectorAll('.sport-pill').forEach(p=>p.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const cfg=SPORTS[name];
+  document.getElementById('sportHint').textContent=cfg.hint;
+  document.getElementById('footballSection').style.display=name==='horseracing'?'none':'block';
+  document.getElementById('hrSection').style.display=name==='horseracing'?'block':'none';
+  document.getElementById('calcBtn').textContent=cfg.icon+' Calculate';
+  if(name!=='horseracing'){
+    document.getElementById('atkLabel').textContent=cfg.atkLabel+' (Home)';
+    document.getElementById('defLabel').textContent=cfg.defLabel+' (Home)';
+    document.getElementById('atkLabelA').textContent=cfg.atkLabel+' (Away)';
+    document.getElementById('defLabelA').textContent=cfg.defLabel+' (Away)';
+    document.getElementById('lgHomeLabel').textContent='League Avg '+cfg.unit+' (Home)';
+    document.getElementById('lgAwayLabel').textContent='League Avg '+cfg.unit+' (Away)';
+    document.getElementById('lgHome').placeholder='Default: '+cfg.lgHome;
+    document.getElementById('lgAway').placeholder='Default: '+cfg.lgAway;
+    document.getElementById('expectedTitle').textContent='Expected '+cfg.unit;
+  }
+  populateLeagues();resetPredictor();
+}
+function populateLeagues(){const sel=document.getElementById('leagueSelect');const leagues=SPORTS[currentSport].leagues;sel.innerHTML=leagues.map(l=>`<option value="${l.label}">${l.label}</option>`).join('');currentLeague=leagues[0];onLeagueChange();}
+function onLeagueChange(){const val=document.getElementById('leagueSelect').value;currentLeague=SPORTS[currentSport].leagues.find(l=>l.label===val)||null;updateLoadMatchesBtn();document.getElementById('matchList').innerHTML='';document.getElementById('matchErr').textContent='';document.getElementById('liveOddsCard').style.display='none';document.getElementById('fetchOddsBtn').style.display='none';}
+function updateLoadMatchesBtn(){document.getElementById('loadMatchesBtn').style.display=(KEYS.fd&&currentLeague?.fd)?'inline-block':'none';document.getElementById('fdHint').style.display=(!KEYS.fd&&currentLeague?.fd&&currentSport!=='horseracing')?'block':'none';}
+
+// ═══════════════════════════════════════════════════
+// MATCH LOADING
+// ═══════════════════════════════════════════════════
+async function loadMatches(){
+  if(!KEYS.fd||!currentLeague?.fd)return;
+  document.getElementById('matchErr').textContent='';
+  document.getElementById('matchList').innerHTML='<div class="spinner"><div class="spin"></div></div>';
+  try{
+    const r=await fetch(`https://api.football-data.org/v4/competitions/${currentLeague.fd}/matches?status=SCHEDULED`,{headers:{'X-Auth-Token':KEYS.fd}});
+    const data=await r.json();
+    if(data.errorCode)throw new Error(data.message);
+    const matches=(data.matches||[]).slice(0,10);
+    if(!matches.length){document.getElementById('matchList').innerHTML='';document.getElementById('matchErr').textContent='No upcoming matches found.';return;}
+    document.getElementById('matchList').innerHTML=matches.map((m,i)=>`<div class="match-item" id="match-${i}" onclick="selectMatch(${i},'${m.homeTeam.name.replace(/'/g,"\\'")}','${m.awayTeam.name.replace(/'/g,"\\'")}')"><div class="match-teams"><span class="home">${m.homeTeam.name}</span><span class="vs">vs</span><span class="away">${m.awayTeam.name}</span></div><div class="match-date">${new Date(m.utcDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div></div>`).join('');
+  }catch(e){document.getElementById('matchList').innerHTML='';document.getElementById('matchErr').textContent='Could not fetch: '+e.message;}
+}
+function selectMatch(i,home,away){
+  document.querySelectorAll('.match-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('match-'+i).classList.add('selected');
+  document.getElementById('homeTeam').value=home;
+  document.getElementById('awayTeam').value=away;
+  ['homeSLabel','homeAdjLabel','homeLambdaLabel','hwLabel'].forEach(id=>document.getElementById(id).textContent=id==='hwLabel'?home+' Win':home);
+  ['awaySLabel','awayAdjLabel','awayLambdaLabel','awLabel'].forEach(id=>document.getElementById(id).textContent=id==='awLabel'?away+' Win':away);
+  resetResults();
+  if(KEYS.oddsApi&&currentLeague?.odds)fetchOdds(home,away);
+  else if(KEYS.oddsApi){document.getElementById('fetchOddsBtn').style.display='block';document.getElementById('fetchOddsBtn').textContent=`📊 Fetch Live Odds for ${home} vs ${away}`;}
+}
+function fetchOddsManual(){const h=document.getElementById('homeTeam').value,a=document.getElementById('awayTeam').value;if(h&&a)fetchOdds(h,a);}
+async function fetchOdds(home,away){
+  if(!KEYS.oddsApi||!currentLeague?.odds)return;
+  document.getElementById('liveOddsCard').style.display='block';
+  document.getElementById('liveOddsContent').innerHTML='<div class="spinner"><div class="spin"></div></div>';
+  try{
+    const r=await fetch(`https://api.the-odds-api.com/v4/sports/${currentLeague.odds}/odds/?apiKey=${KEYS.oddsApi}&regions=uk&markets=h2h&oddsFormat=decimal`);
+    const data=await r.json();
+    if(!Array.isArray(data))throw new Error(data.message||'API error');
+    const match=data.find(m=>m.home_team.toLowerCase().includes(home.toLowerCase().slice(0,5))||m.away_team.toLowerCase().includes(away.toLowerCase().slice(0,5)));
+    if(!match){document.getElementById('liveOddsContent').innerHTML='<p class="notice">No odds found yet — check closer to kick-off.</p>';return;}
+    const bks=match.bookmakers.slice(0,6);
+    let html=`<div class="matrix-wrap"><table class="odds-table"><thead><tr><th>Bookmaker</th><th>${home}</th><th>Draw</th><th>${away}</th></tr></thead><tbody>`;
+    bks.forEach(bk=>{const mkt=bk.markets.find(m=>m.key==='h2h');if(!mkt)return;const ho=mkt.outcomes.find(o=>o.name===match.home_team)?.price;const aw=mkt.outcomes.find(o=>o.name===match.away_team)?.price;const dr=mkt.outcomes.find(o=>o.name==='Draw')?.price;html+=`<tr><td>${bk.title}</td><td class="odds-home">${ho?.toFixed(2)||'—'}</td><td class="odds-draw">${dr?.toFixed(2)||'—'}</td><td class="odds-away">${aw?.toFixed(2)||'—'}</td></tr>`;});
+    html+='</tbody></table></div><p class="hint" style="margin-top:8px">Live odds · Decimal format · Up to 6 bookmakers</p>';
+    document.getElementById('liveOddsContent').innerHTML=html;
+  }catch(e){document.getElementById('liveOddsContent').innerHTML=`<p class="notice">Could not fetch odds: ${e.message}</p>`;}
+}
+
+// ═══════════════════════════════════════════════════
+// POISSON CORE
+// ═══════════════════════════════════════════════════
+function poisson(lam,k){if(lam<=0)return 0;let lp=-lam+k*Math.log(lam);for(let i=1;i<=k;i++)lp-=Math.log(i);return Math.exp(lp);}
+function buildMatrix(lh,la,max){return Array.from({length:max+1},(_,h)=>Array.from({length:max+1},(_,a)=>poisson(lh,h)*poisson(la,a)));}
+
+// Dixon-Coles correction — adjusts the four low-scoring scorelines (0-0, 1-0,
+// 0-1, 1-1) to correct a known bias in the independent Poisson model.
+// Basic Poisson underestimates draws and tight scorelines because it assumes
+// goals are fully independent, missing the tactical correlation in close games.
+// ρ (rho) = -0.05 is the empirically derived constant from the 1997 Dixon-Coles
+// paper, producing a small upward correction to 0-0 and 1-1, and small downward
+// correction to 1-0 and 0-1. Affects only these four scorelines; all others unchanged.
+function applyDixonColes(matrix,lh,la,rho=-0.05){
+  const m=matrix.map(r=>[...r]); // shallow copy — don't mutate original
+  const tau=(x,y,lh,la,rho)=>{
+    if(x===0&&y===0)return 1-lh*la*rho;
+    if(x===0&&y===1)return 1+lh*rho;
+    if(x===1&&y===0)return 1+la*rho;
+    if(x===1&&y===1)return 1-rho;
+    return 1;
+  };
+  // Apply correction to the four affected cells
+  [[0,0],[0,1],[1,0],[1,1]].forEach(([h,a])=>{
+    m[h][a]*=tau(h,a,lh,la,rho);
+  });
+  // Renormalise so probabilities still sum to 1
+  let total=0;
+  for(let h=0;h<=matrix.length-1;h++)for(let a=0;a<matrix[0].length;a++)total+=m[h][a];
+  for(let h=0;h<=matrix.length-1;h++)for(let a=0;a<matrix[0].length;a++)m[h][a]/=total;
+  return m;
+}
+function calcOutcomes(m,max){let hw=0,d=0,aw=0;for(let h=0;h<=max;h++)for(let a=0;a<=max;a++){if(h>a)hw+=m[h][a];else if(h===a)d+=m[h][a];else aw+=m[h][a];}return{hw,d,aw};}
+function topN(m,max,n=6){const s=[];for(let h=0;h<=max;h++)for(let a=0;a<=max;a++)s.push({h,a,p:m[h][a]});return s.sort((a,b)=>b.p-a.p).slice(0,n);}
+function pct(v){return(v*100).toFixed(1)+'%'}
+
+function applyVenue(lHome,lAway,venue,lgHome,lgAway){
+  // neutral: use avg of home/away for both
+  // nearneutral: blend 50%
+  const f=VENUE_FACTORS[venue]||1;
+  if(venue==='neutral'){
+    const avg=(lgHome+lgAway)/2;
+    // recalculate both as if away but at neutral — use the away multipliers
+    return{lHome:Math.max(0.1,lHome*(1-0.15*(1-f))),lAway:Math.max(0.1,lAway*(1+0.15*(1-f)))};
+  }
+  if(venue==='nearneutral'){
+    // halve the home advantage
+    return{lHome:Math.max(0.1,lHome*0.925),lAway:Math.max(0.1,lAway*1.075)};
+  }
+  return{lHome,lAway};
+}
+
+function calcLambdas(homeAtk,homeDef,awayAtk,awayDef,lgH,lgA,venue,haAdj=0,hdAdj=0,aaAdj=0,adAdj=0,isIntl=false){
+  // ── UNIFIED LAMBDA CALCULATION ─────────────────────────────────────────────
+  // The classic Dixon-Coles formula (homeAtk/lgH)*(awayDef/lgH)*lgH allows
+  // defence to act as an unbounded suppressor. When awayDef << lgH (e.g. a
+  // team conceding 0.50/game in a league averaging 1.35), the attacker's xG
+  // collapses regardless of how prolific they actually are.
+  //
+  // Fix: treat defence as a capped modifier on the attacker's own average.
+  // The modifier is def/lg, but clamped to [0.60, 1.60] so:
+  //   - Exceptional defence (0.30 conceded) can suppress by at most 40%
+  //   - Leaky defence (2.50 conceded) can boost by at most 60%
+  //
+  // This preserves the relative signal (strong defence = lower xG) without
+  // allowing extreme outliers to dominate the calculation entirely.
+  // Works correctly for both club and international fixtures.
+  //
+  // Verified against: Al Ahed (2.10sc→1.26xG), Young Africans (3.30sc→1.98xG),
+  // Nueva Chicago (1.10sc→0.90xG), Colombia (2.17sc→1.30xG)
+
+  const defFactor=(def,lg)=>Math.min(1.6,Math.max(0.6,def/lg));
+  let lHome=homeAtk*defFactor(awayDef,lgH);
+  let lAway=awayAtk*defFactor(homeDef,lgA);
+
+  lHome*=1+haAdj/100-hdAdj/100;
+  lAway*=1+aaAdj/100-adAdj/100;
+  return applyVenue(lHome,lAway,venue,lgH,lgA);
+}
+
+// Generate Poisson-based score odds for a match
+function poissonScoreOdds(lHome,lAway,maxS=6){
+  const matrix=buildMatrix(lHome,lAway,maxS);
+  return SCORE_ODDS.map(s=>{
+    const prob=(s.h<=maxS&&s.a<=maxS)?matrix[s.h][s.a]:0;
+    const poissonOdds=prob>0?1/prob:9999;
+    return{...s,prob,poissonOdds};
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PREDICTOR CALCULATE
+// ═══════════════════════════════════════════════════
+function calculate(){
+  document.getElementById('predErr').textContent='';
+  if(currentSport==='horseracing'){calcHR();return;}
+  const home=document.getElementById('homeTeam').value.trim();
+  const away=document.getElementById('awayTeam').value.trim();
+  const cfg=SPORTS[currentSport];
+  if(!home||!away){document.getElementById('predErr').textContent='Enter both team names.';return;}
+  const ha=parseFloat(document.getElementById('homeAttack').value);
+  const hd=parseFloat(document.getElementById('homeDefense').value);
+  const aa=parseFloat(document.getElementById('awayAttack').value);
+  const ad=parseFloat(document.getElementById('awayDefense').value);
+  if(!ha||!hd||!aa||!ad){document.getElementById('predErr').textContent='Fill in all four team stat fields.';return;}
+  const lh=parseFloat(document.getElementById('lgHome').value)||cfg.lgHome;
+  const la=parseFloat(document.getElementById('lgAway').value)||cfg.lgAway;
+  const haAdj=parseFloat(document.getElementById('homeAtkAdj').value)||0;
+  const hdAdj=parseFloat(document.getElementById('homeDefAdj').value)||0;
+  const aaAdj=parseFloat(document.getElementById('awayAtkAdj').value)||0;
+  const adAdj=parseFloat(document.getElementById('awayDefAdj').value)||0;
+
+  const{lHome,lAway}=calcLambdas(ha,hd,aa,ad,lh,la,predVenue,haAdj,hdAdj,aaAdj,adAdj);
+  const max=cfg.maxScore;
+  const matrix=buildMatrix(lHome,lAway,max);
+  const outcomes=calcOutcomes(matrix,max);
+  const top=topN(matrix,max);
+  const maxP=Math.max(...matrix.flat());
+
+  document.getElementById('homeLambda').textContent=lHome.toFixed(2);
+  document.getElementById('awayLambda').textContent=lAway.toFixed(2);
+  document.getElementById('homeLambdaLabel').textContent=home;
+  document.getElementById('awayLambdaLabel').textContent=away;
+  document.getElementById('hwLabel').textContent=home+' Win';
+  document.getElementById('awLabel').textContent=away+' Win';
+
+  const sb=(id,bid,val)=>{document.getElementById(id).textContent=pct(val);document.getElementById(bid).style.width=pct(val);};
+  sb('hwPct','hwBar',outcomes.hw);sb('drawPct','drawBar',outcomes.d);sb('awPct','awBar',outcomes.aw);
+
+  document.getElementById('scoreGrid').innerHTML=top.map((s,i)=>`<div class="score-card ${i===0?'top':''}">${i===0?'<div class="top-label">Top Pick</div>':''}<div class="score-val">${s.h} – ${s.a}</div><div class="score-pct">${pct(s.p)}</div></div>`).join('');
+
+  let th='<tr><th>H\\A</th>';for(let a=0;a<=max;a++)th+=`<th>${a}</th>`;th+='</tr>';
+  let tb='';
+  matrix.forEach((row,h)=>{tb+=`<tr><th>${h}</th>`;row.forEach((p,a)=>{const intensity=Math.min(p/(maxP*0.7),1);const bg=`rgba(0,${Math.round(207*intensity)},${Math.round(255*intensity)},${0.07+intensity*0.5})`;const col=p>maxP*0.35?'#fff':'var(--muted)';tb+=`<td style="background:${bg};color:${col};border-radius:4px">${(p*100).toFixed(1)}</td>`;});tb+='</tr>';});
+  document.getElementById('matrixTable').innerHTML=th+tb;
+  document.getElementById('matrixHint').textContent=`Rows = ${home} · Columns = ${away} · Brighter = more likely`;
+
+  const vi=document.getElementById('venueIndicator');
+  if(predVenue!=='home'){vi.style.display='block';document.getElementById('venueIndicatorText').textContent=VENUE_NOTES[predVenue];}
+  else{vi.style.display='none';}
+
+  document.getElementById('predResults').style.display='block';
+  document.getElementById('hrResults').style.display='none';
+  document.getElementById('resetBtn').style.display='inline-block';
+}
+
+// ═══════════════════════════════════════════════════
+// HORSE RACING
+// ═══════════════════════════════════════════════════
+function initRunners(){const c=document.getElementById('runnerRows');c.innerHTML='';for(let i=0;i<3;i++)c.innerHTML+=`<div class="runner-row" id="runnerRow-${i}"><input type="text" placeholder="Horse ${i+1}" id="rName-${i}"><input type="text" placeholder="e.g. 5/2" id="rOdds-${i}"><input type="text" placeholder="Form" id="rForm-${i}"></div>`;}
+function addRunner(){runnerCount++;document.getElementById('runnerRows').innerHTML+=`<div class="runner-row" id="runnerRow-${runnerCount-1}"><input type="text" placeholder="Horse ${runnerCount}" id="rName-${runnerCount-1}"><input type="text" placeholder="e.g. 5/2" id="rOdds-${runnerCount-1}"><input type="text" placeholder="Form" id="rForm-${runnerCount-1}"></div>`;}
+function removeRunner(){if(runnerCount<=2)return;runnerCount--;document.getElementById('runnerRow-'+(runnerCount))?.remove();}
+function calcHR(){
+  const runners=[];
+  for(let i=0;i<runnerCount;i++){const name=document.getElementById('rName-'+i)?.value.trim();const odds=document.getElementById('rOdds-'+i)?.value.trim();const form=document.getElementById('rForm-'+i)?.value.trim();if(name&&odds)runners.push({name,odds:parseOdds(odds),form});}
+  if(runners.length<2){document.getElementById('predErr').textContent='Enter at least 2 runners.';return;}
+  const parsed=runners.map(r=>({...r,implied:1/r.odds}));
+  const total=parsed.reduce((s,r)=>s+r.implied,0);
+  const sorted=parsed.map(r=>({...r,fairProb:r.implied/total})).sort((a,b)=>b.fairProb-a.fairProb);
+  document.getElementById('hrOverround').textContent=((total-1)*100).toFixed(1)+'%';
+  document.getElementById('hrImplied').textContent=(total*100).toFixed(1)+'%';
+  document.getElementById('hrRunnerResults').innerHTML=sorted.map((r,i)=>`<div class="hr-result-item"><div class="hr-rank">#${i+1}</div><div style="flex:1"><div class="hr-name">${r.name}</div>${r.form?`<div class="hr-form">Form: ${r.form}</div>`:''}</div><div class="hr-right"><div class="hr-dec">${r.odds.toFixed(2)}</div><div class="hr-fair">${pct(r.fairProb)} fair</div><div class="hr-value ${r.fairProb>r.implied?'value-yes':'value-no'}">${r.fairProb>r.implied?'✅ Value':'❌ No value'}</div></div></div>`).join('');
+  document.getElementById('hrResults').style.display='block';
+  document.getElementById('predResults').style.display='none';
+  document.getElementById('resetBtn').style.display='inline-block';
+}
+
+// ═══════════════════════════════════════════════════
+// AI ANALYSER (PREDICTOR)
+// ═══════════════════════════════════════════════════
+function handleDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadImgFile(f);}
+function handleImgFile(e){const f=e.target.files[0];if(f)loadImgFile(f);}
+function loadImgFile(f){const r=new FileReader();r.onload=ev=>{imgData=ev.target.result.split(',')[1];imgMime=f.type||'image/jpeg';document.getElementById('dropContent').innerHTML=`<img src="${ev.target.result}">`;updateAnalyseBtn();};r.readAsDataURL(f);}
+function updateAnalyseBtn(){document.getElementById('analyseBtn').disabled=!imgData&&!document.getElementById('urlInput').value.trim();}
+async function analyseContext(){
+  document.getElementById('aiErr').textContent='';document.getElementById('aiOut').style.display='none';
+  document.getElementById('analyseBtn').textContent='Analysing…';document.getElementById('analyseBtn').disabled=true;
+  try{
+    const url=document.getElementById('urlInput').value.trim();
+    const sys='You are a sports analyst. Analyse the image or URL and extract: team form, injuries, suspensions, lineup news, xG stats, head-to-head. Use bullet points. Be concise.';
+    const messages=imgData?[{role:'user',content:[{type:'image',source:{type:'base64',media_type:imgMime,data:imgData}},{type:'text',text:'Analyse this sports stats image for match prediction.'}]}]:[{role:'user',content:`Analyse this URL for sports prediction: ${url}`}];
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages})});
+    const data=await res.json();if(data.error)throw new Error(data.error.message);
+    document.getElementById('aiOutText').textContent=data.content?.find(b=>b.type==='text')?.text||'';
+    document.getElementById('aiOut').style.display='block';
+  }catch(e){document.getElementById('aiErr').textContent='Error: '+e.message;}
+  finally{document.getElementById('analyseBtn').textContent='Analyse with AI';document.getElementById('analyseBtn').disabled=false;}
+}
+
+// ═══════════════════════════════════════════════════
+// ODDS PARSING / FORMATTING
+// ═══════════════════════════════════════════════════
+function parseOdds(str){
+  str=String(str).trim();
+  if(str.includes('/')){const[n,d]=str.split('/');return parseFloat(n)/parseFloat(d)+1;}
+  if(str.startsWith('+'))return parseFloat(str)/100+1;
+  if(str.startsWith('-'))return 100/Math.abs(parseFloat(str))+1;
+  return parseFloat(str)||1;
+}
+function fmtOdds(dec,fmt){
+  fmt=fmt||sFmt;
+  if(fmt==='fractional'){const n=dec-1;const ds=[1,2,3,4,5,6,8,10,12,16,20,25,33,50,100];let best=`${Math.round(n)}/1`,bd=Infinity;for(const d of ds){const num=Math.round(n*d);const diff=Math.abs(num/d-n);if(num>0&&diff<bd){bd=diff;best=`${num}/${d}`;}}return best;}
+  if(fmt==='american')return dec>=2?`+${Math.round((dec-1)*100)}`:`-${Math.round(100/(dec-1))}`;
+  return dec.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════
+// ODDS RANGE CALCULATOR
+// ═══════════════════════════════════════════════════
+function calcOddsRange(stakeId,returnId,estId,rangeId,rangeLowId,rangeHighId,rangeNoteId){
+  const stake=parseFloat(document.getElementById(stakeId).value);
+  const ret=parseFloat(document.getElementById(returnId).value);
+  const estRaw=document.getElementById(estId).value.trim();
+  const rangeBox=document.getElementById(rangeId);
+  if(!stake||!ret||ret<=stake){rangeBox.style.display='none';return null;}
+  const calcOdds=ret/stake;
+  let lo=calcOdds,hi=calcOdds;
+  let noteText='';let showNote=false;
+  if(estRaw){
+    const estOdds=parseOdds(estRaw);
+    if(estOdds>1){
+      lo=Math.min(calcOdds,estOdds);
+      hi=Math.max(calcOdds,estOdds);
+      const diff=Math.abs(calcOdds-estOdds)/calcOdds*100;
+      if(diff>5){noteText=`Your stake/return suggests ${fmtOdds(calcOdds,'decimal')} but your estimate was ${fmtOdds(estOdds,'decimal')} — a ${diff.toFixed(0)}% difference. Searching across both.`;showNote=true;}
+    }
+  }
+  document.getElementById(rangeLowId).textContent=lo.toFixed(2);
+  document.getElementById(rangeHighId).textContent=hi.toFixed(2);
+  const noteEl=document.getElementById(rangeNoteId);
+  noteEl.textContent=noteText;noteEl.style.display=showNote?'block':'none';
+  rangeBox.style.display='block';
+  return{lo,hi,calcOdds};
+}
+function calcSingleOdds(){calcOddsRange('s_stake','s_return','s_estOdds','s_oddsRange','s_rangeLow','s_rangeHigh','s_rangeNote');}
+function calcDoubleOdds(){calcOddsRange('d_stake','d_return','d_estOdds','d_oddsRange','d_rangeLow','d_rangeHigh','d_rangeNote');}
+
+// ═══════════════════════════════════════════════════
+// BET365 SCREENSHOT EXTRACTORS
+// ═══════════════════════════════════════════════════
+function handleSDrop(e){e.preventDefault();document.getElementById('s_dropzone').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadSFile(f);}
+function handleSFile(e){const f=e.target.files[0];if(f)loadSFile(f);}
+function loadSFile(f){const r=new FileReader();r.onload=ev=>{sImgData=ev.target.result.split(',')[1];sImgMime=f.type||'image/jpeg';document.getElementById('s_dropContent').innerHTML=`<img src="${ev.target.result}">`;document.getElementById('s_extractBtn').disabled=false;};r.readAsDataURL(f);}
+
+function handleDDrop(n,e){e.preventDefault();document.getElementById('d_drop'+n).classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadDFile(n,f);}
+function handleDFile(n,e){const f=e.target.files[0];if(f)loadDFile(n,f);}
+function loadDFile(n,f){const r=new FileReader();r.onload=ev=>{if(n===1){dImgData1=ev.target.result.split(',')[1];dImgMime1=f.type||'image/jpeg';document.getElementById('d_dropContent1').innerHTML=`<img src="${ev.target.result}">`;document.getElementById('d_extractBtn1').disabled=false;}else{dImgData2=ev.target.result.split(',')[1];dImgMime2=f.type||'image/jpeg';document.getElementById('d_dropContent2').innerHTML=`<img src="${ev.target.result}">`;document.getElementById('d_extractBtn2').disabled=false;}};r.readAsDataURL(f);}
+
+async function extractOddsFromImg(imgData,imgMime,errId,outId,textId,btnId){
+  document.getElementById(errId).textContent='';
+  document.getElementById(outId).style.display='none';
+  document.getElementById(btnId).textContent='Extracting…';
+  document.getElementById(btnId).disabled=true;
+  try{
+    const sys='You are a sports betting data extractor. Extract every scoreline and its odds from this correct score betting market screenshot. Return ONLY a JSON array, no markdown, no explanation. Format: [{"score":"1-0","odds":6.0},...]. Include every visible scoreline.';
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:imgMime,data:imgData}},{type:'text',text:'Extract all correct score odds from this betting screenshot.'}]}]})});
+    const data=await res.json();if(data.error)throw new Error(data.error.message);
+    const text=data.content?.find(b=>b.type==='text')?.text||'[]';
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    document.getElementById(textId).textContent=parsed.map(s=>`${s.score}: ${fmtOdds(s.odds,'decimal')}`).join('\n');
+    document.getElementById(outId).style.display='block';
+    return parsed;
+  }catch(e){document.getElementById(errId).textContent='Could not extract: '+e.message;return null;}
+  finally{document.getElementById(btnId).disabled=false;document.getElementById(btnId).textContent=btnId.includes('1')?'Extract Odds — Match 1':btnId.includes('2')?'Extract Odds — Match 2':'Extract Odds from Screenshot';}
+}
+async function extractS(){sExtractedOdds=await extractOddsFromImg(sImgData,sImgMime,'s_extractErr','s_extractOut','s_extractText','s_extractBtn');}
+async function extractD(n){
+  if(n===1)dExtracted1=await extractOddsFromImg(dImgData1,dImgMime1,'d_extractErr1','d_extractOut1','d_extractText1','d_extractBtn1');
+  else dExtracted2=await extractOddsFromImg(dImgData2,dImgMime2,'d_extractErr2','d_extractOut2','d_extractText2','d_extractBtn2');
+}
+
+// ═══════════════════════════════════════════════════
+// BUILD ODDS DB FOR A MATCH
+// ═══════════════════════════════════════════════════
+function buildOddsDB(extractedOdds,lHome,lAway){
+  // Start with Poisson-derived odds for all scorelines
+  const db=poissonScoreOdds(lHome,lAway,6);
+  // Override with extracted Bet365 odds if available
+  if(extractedOdds&&extractedOdds.length>0){
+    extractedOdds.forEach(b365=>{
+      const parts=b365.score.split('-');
+      if(parts.length===2){
+        const h=parseInt(parts[0]),a=parseInt(parts[1]);
+        const existing=db.find(s=>s.h===h&&s.a===a);
+        if(existing){existing.odds=b365.odds;existing.source='Bet365';}
+        else db.push({h,a,odds:b365.odds,prob:0,poissonOdds:b365.odds,source:'Bet365'});
+      }
+    });
+  }
+  return db.map(s=>({...s,source:s.source||(extractedOdds?'Poisson model':'Typical avg')}));
+}
+
+function diffClass(d){return d<0.03?'diff-great':d<0.07?'diff-ok':'diff-poor';}
+function diffLabel(d){return d<0.03?'Exact match':d<0.07?'Close match':'Approximate';}
+
+// ═══════════════════════════════════════════════════
+// SINGLE BET FINDER
+// ═══════════════════════════════════════════════════
+function getMatchLambdas(atkId,defId,atkIdA,defIdA,venue){
+  const cfg=SPORTS.football;
+  const ha=parseFloat(document.getElementById(atkId).value)||cfg.lgHome;
+  const hd=parseFloat(document.getElementById(defId).value)||cfg.lgAway;
+  const aa=parseFloat(document.getElementById(atkIdA).value)||cfg.lgAway;
+  const ad=parseFloat(document.getElementById(defIdA).value)||cfg.lgHome;
+  return calcLambdas(ha,hd,aa,ad,cfg.lgHome,cfg.lgAway,venue);
+}
+
+function runSingle(){
+  document.getElementById('s_err').textContent='';
+  document.getElementById('s_results').style.display='none';
+  document.getElementById('s_noResults').style.display='none';
+
+  const home=document.getElementById('s_homeTeam').value.trim();
+  const away=document.getElementById('s_awayTeam').value.trim();
+  if(!home||!away){document.getElementById('s_err').textContent='Enter both team names.';return;}
+
+  const range=calcOddsRange('s_stake','s_return','s_estOdds','s_oddsRange','s_rangeLow','s_rangeHigh','s_rangeNote');
+  if(!range){document.getElementById('s_err').textContent='Enter stake and return.';return;}
+
+  const tol=parseFloat(document.getElementById('s_tolerance').value);
+  const{lo,hi,calcOdds}=range;
+  const profit=parseFloat(document.getElementById('s_return').value)-parseFloat(document.getElementById('s_stake').value);
+
+  // Get Poisson lambdas for these teams
+  const{lHome,lAway}=getMatchLambdas('s_homeAtk','s_homeDef','s_awayAtk','s_awayDef',sVenue);
+  const db=buildOddsDB(sExtractedOdds,lHome,lAway);
+
+  // Extended search range with tolerance
+  const searchLo=lo*(1-tol);
+  const searchHi=hi*(1+tol);
+
+  const matches=db.filter(s=>{
+    const o=s.odds||s.poissonOdds;
+    return o>=searchLo&&o<=searchHi;
+  }).map(s=>{
+    const o=s.odds||s.poissonOdds;
+    // distance from nearest edge of range
+    const dist=o>=lo&&o<=hi?0:Math.min(Math.abs(o-lo),Math.abs(o-hi));
+    const diff=dist/((lo+hi)/2);
+    return{...s,usedOdds:o,diff};
+  }).sort((a,b)=>a.diff-b.diff);
+
+  document.getElementById('s_calcOddsDisp').textContent=fmtOdds(calcOdds,sFmt);
+  document.getElementById('s_profitDisp').textContent='£'+profit.toFixed(2);
+  document.getElementById('s_impliedDisp').textContent=pct(1/calcOdds);
+
+  const venueNote=document.getElementById('s_venueNote');
+  if(sVenue!=='home'){venueNote.style.display='block';venueNote.textContent='⚖️ '+VENUE_NOTES[sVenue];}
+  else venueNote.style.display='none';
+
+  if(!matches.length){document.getElementById('s_noResults').style.display='block';return;}
+
+  const src=sExtractedOdds?'Bet365 screenshot':'Poisson model for '+home+' vs '+away;
+  document.getElementById('s_singleSub').textContent=`${matches.length} scoreline${matches.length>1?'s':''} matching target odds of ${fmtOdds(lo,sFmt)}${lo!==hi?' – '+fmtOdds(hi,sFmt):''}. Source: ${src}.`;
+
+  document.getElementById('s_singleList').innerHTML=matches.map((s,i)=>`
+    <div class="score-result-item ${i===0?'best':''}">
+      <div class="score-result-header">
+        <div>
+          <div style="font-size:10px;color:var(--dim);margin-bottom:2px">${home} – ${away}</div>
+          <div class="score-result-score">${s.h} – ${s.a}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="score-result-odds">${fmtOdds(s.usedOdds,sFmt)}</div>
+          <div class="score-result-diff ${diffClass(s.diff)}" style="margin-top:4px">${diffLabel(s.diff)}</div>
+        </div>
+      </div>
+      <div class="score-result-meta">
+        Model probability: ${s.prob>0?pct(s.prob):'—'} · Odds source: ${s.source}
+        ${sVenue!=='home'?' · Venue adjusted':''}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('s_results').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════
+// DOUBLE BET FINDER
+// ═══════════════════════════════════════════════════
+function runDouble(){
+  document.getElementById('d_err').textContent='';
+  document.getElementById('d_results').style.display='none';
+  document.getElementById('d_noResults').style.display='none';
+
+  const home1=document.getElementById('d_home1').value.trim();
+  const away1=document.getElementById('d_away1').value.trim();
+  const home2=document.getElementById('d_home2').value.trim();
+  const away2=document.getElementById('d_away2').value.trim();
+  if(!home1||!away1||!home2||!away2){document.getElementById('d_err').textContent='Enter all four team names.';return;}
+
+  const range=calcOddsRange('d_stake','d_return','d_estOdds','d_oddsRange','d_rangeLow','d_rangeHigh','d_rangeNote');
+  if(!range){document.getElementById('d_err').textContent='Enter stake and return.';return;}
+
+  const tol=parseFloat(document.getElementById('d_tolerance').value);
+  const{lo,hi,calcOdds}=range;
+  const profit=parseFloat(document.getElementById('d_return').value)-parseFloat(document.getElementById('d_stake').value);
+
+  const{lHome:lH1,lAway:lA1}=getMatchLambdas('d_homeAtk1','d_homeDef1','d_awayAtk1','d_awayDef1',dVenue1);
+  const{lHome:lH2,lAway:lA2}=getMatchLambdas('d_homeAtk2','d_homeDef2','d_awayAtk2','d_awayDef2',dVenue2);
+
+  const db1=buildOddsDB(dExtracted1,lH1,lA1);
+  const db2=buildOddsDB(dExtracted2,lH2,lA2);
+
+  const searchLo=lo*(1-tol);
+  const searchHi=hi*(1+tol);
+
+  const combinations=[];
+  db1.forEach(s1=>{
+    db2.forEach(s2=>{
+      const o1=s1.odds||s1.poissonOdds;
+      const o2=s2.odds||s2.poissonOdds;
+      const combined=o1*o2;
+      if(combined>=searchLo&&combined<=searchHi){
+        const dist=combined>=lo&&combined<=hi?0:Math.min(Math.abs(combined-lo),Math.abs(combined-hi));
+        const diff=dist/((lo+hi)/2);
+        combinations.push({s1,s2,o1,o2,combined,diff});
+      }
+    });
+  });
+  combinations.sort((a,b)=>a.diff-b.diff);
+  const top=combinations.slice(0,10);
+
+  document.getElementById('d_calcOddsDisp').textContent=fmtOdds(calcOdds,dFmt);
+  document.getElementById('d_profitDisp').textContent='£'+profit.toFixed(2);
+  document.getElementById('d_impliedDisp').textContent=pct(1/calcOdds);
+
+  if(!top.length){document.getElementById('d_noResults').style.display='block';return;}
+
+  document.getElementById('d_doubleSub').textContent=`Top ${top.length} scoreline combination${top.length>1?'s':''} matching target odds of ${fmtOdds(lo,dFmt)}${lo!==hi?' – '+fmtOdds(hi,dFmt):''}.`;
+
+  document.getElementById('d_doubleList').innerHTML=top.map((c,i)=>`
+    <div class="double-item ${i===0?'best':''}">
+      <div class="double-scores">
+        <div>
+          <div class="double-match-label">${home1} vs ${away1}${dVenue1!=='home'?' ⚖️':''}</div>
+          <div class="double-score-pill">${c.s1.h} – ${c.s1.a}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">${fmtOdds(c.o1,dFmt)}</div>
+        </div>
+        <div class="double-plus">×</div>
+        <div>
+          <div class="double-match-label">${home2} vs ${away2}${dVenue2!=='home'?' ⚖️':''}</div>
+          <div class="double-score-pill">${c.s2.h} – ${c.s2.a}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px">${fmtOdds(c.o2,dFmt)}</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div class="score-result-diff ${diffClass(c.diff)}">${diffLabel(c.diff)}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-top:4px">${fmtOdds(c.combined,dFmt)}</div>
+          <div style="font-size:10px;color:var(--dim)">combined</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--dim)">Source: ${c.s1.source} · ${c.s2.source}</div>
+    </div>`).join('');
+
+  document.getElementById('d_results').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════
+// ACCA BUILDER
+// ═══════════════════════════════════════════════════
+function initLegs(){document.getElementById('accaLegs').innerHTML='';legCount=0;addLeg();addLeg();}
+function addLeg(){legCount++;const d=document.createElement('div');d.style.cssText='display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px';d.id='leg-'+legCount;d.innerHTML=`<input type="text" placeholder="Selection ${legCount}"><input type="text" placeholder="Odds">`;document.getElementById('accaLegs').appendChild(d);}
+function removeLeg(){if(legCount<=1)return;document.getElementById('leg-'+legCount)?.remove();legCount--;}
+function buildAcca(){
+  const legs=Array.from(document.querySelectorAll('#accaLegs > div')).map(d=>{const ins=d.querySelectorAll('input');return{desc:ins[0].value,odds:ins[1].value};}).filter(l=>l.odds);
+  const stake=parseFloat(document.getElementById('accaStake').value);
+  if(!legs.length||!stake)return;
+  const decOdds=legs.map(l=>parseOdds(l.odds));
+  const combined=decOdds.reduce((a,o)=>a*o,1);
+  const ret=stake*combined,profit=ret-stake;
+  document.getElementById('accaCombined').textContent=fmtOdds(combined,'decimal');
+  document.getElementById('accaReturn').textContent='£'+ret.toFixed(2);
+  document.getElementById('accaProfit').textContent='£'+profit.toFixed(2);
+  document.getElementById('accaWinProb').textContent=pct(1/combined);
+  document.getElementById('accaLegBreakdown').innerHTML=legs.map((l,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:6px;margin-top:${i===0?'12px':'0'}"><span style="font-size:12px;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px">${l.desc||'Leg '+(i+1)}</span><span style="font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0">${fmtOdds(decOdds[i],'decimal')}</span></div>`).join('');
+  document.getElementById('accaResults').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════════════
+function resetResults(){document.getElementById('predResults').style.display='none';document.getElementById('hrResults').style.display='none';document.getElementById('predErr').textContent='';}
+function resetPredictor(){
+  resetResults();document.getElementById('resetBtn').style.display='none';
+  ['homeTeam','awayTeam','homeAttack','homeDefense','awayAttack','awayDefense','lgHome','lgAway','predNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['homeAtkAdj','homeDefAdj','awayAtkAdj','awayDefAdj'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='0';});
+  document.getElementById('liveOddsCard').style.display='none';
+  document.getElementById('fetchOddsBtn').style.display='none';
+  document.getElementById('matchList').innerHTML='';
+  imgData=null;imgMime=null;
+  document.getElementById('dropContent').innerHTML='<div class="dropzone-icon">📸</div><div class="dropzone-text">Drop image or tap to upload</div><div class="dropzone-sub">Screenshots from BBC Sport, FBref, Racing Post, Google…</div>';
+  document.getElementById('urlInput').value='';
+  document.getElementById('aiOut').style.display='none';
+  document.getElementById('aiErr').textContent='';
+  updateAnalyseBtn();
+}
+</script>
+</body>
+</html>
