@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.6.2</span>
-    <span class="badge badge-live" id="liveBadge">LIVE</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1301,7 +1301,12 @@ async function fetchDailyTips(){
   const leagueIds=AF_LEAGUES[lf]||AF_LEAGUES.all;
   try{
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
-    const fd=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
+    // Fetch fixtures for the next 24 hours from now using a rolling window.
+    // Using from/to instead of date= means a scan at 10pm catches tomorrow
+    // morning's games too — same single API call, no extra requests.
+    const fromDate=now.toISOString().slice(0,10);
+    const toDate=new Date(now.getTime()+86400000).toISOString().slice(0,10);
+    const fd=await afFetch('/fixtures?from='+fromDate+'&to='+toDate+'&timezone=Europe/London');
     const allFixturesRaw=fd.response||[];
 
     let allFixtures=allFixturesRaw
