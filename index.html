@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.6.2</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">UAT2</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1301,13 +1301,15 @@ async function fetchDailyTips(){
   const leagueIds=AF_LEAGUES[lf]||AF_LEAGUES.all;
   try{
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
-    // Fetch fixtures for the next 24 hours from now using a rolling window.
-    // Using from/to instead of date= means a scan at 10pm catches tomorrow
-    // morning's games too — same single API call, no extra requests.
-    const fromDate=now.toISOString().slice(0,10);
-    const toDate=new Date(now.getTime()+86400000).toISOString().slice(0,10);
-    const fd=await afFetch('/fixtures?from='+fromDate+'&to='+toDate+'&timezone=Europe/London');
-    const allFixturesRaw=fd.response||[];
+    // Fetch today's fixtures plus tomorrow's in two sequential calls.
+    // The from/to endpoint requires a league or team parameter so we can't
+    // use it for a global scan — date= is the correct approach here.
+    // Both calls go through afFetch so the 250ms rate limit gap is enforced
+    // between them, preventing the rate limit errors seen previously.
+    const tomorrow=new Date(now.getTime()+86400000).toISOString().slice(0,10);
+    const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
+    const fdTomorrow=await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
+    const allFixturesRaw=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
 
     let allFixtures=allFixturesRaw
       .filter(f=>lf==='all'||leagueIds.includes(f.league.id))
