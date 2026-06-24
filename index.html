@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.5.0</span>
+    <span class="badge">v6.6.1</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -801,11 +801,11 @@ function setProgress(title,text,p){document.getElementById('tipsProgress').style
 const CORS_PROXY='https://corsproxy.io/?url=';
 
 // API-Football Pro plan allows 300 requests/minute (5 req/sec hard limit).
-// 210ms between calls = ~4.8 req/sec — safely under the ceiling with margin
-// for the CORS proxy and network jitter. Previously 150ms (6.7 req/sec) was
-// over the limit and causing intermittent rate limit errors mid-scan.
+// 250ms between calls = 4 req/sec — 20% safety margin under the ceiling.
+// Previously 210ms (4.76 req/sec) was too close to the 200ms minimum and
+// caused intermittent rate limit errors due to clock jitter.
 let SE_LAST_CALL=0;
-const SE_MIN_GAP_MS=210;
+const SE_MIN_GAP_MS=250;
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
@@ -822,7 +822,7 @@ async function cancellableSleep(ms){
   }
 }
 
-async function afFetch(ep,isRetry){
+async function afFetch(ep,retryCount=0){
   // Enforce minimum gap since the last request (Pro-tier pace)
   const now=Date.now();
   const wait=SE_LAST_CALL+SE_MIN_GAP_MS-now;
@@ -839,16 +839,19 @@ async function afFetch(ep,isRetry){
     const d=await res.json();
     if(d&&d.errors&&Array.isArray(d.errors)===false&&Object.keys(d.errors).length>0){
       const errStr=JSON.stringify(d.errors);
-      // If rate-limited, wait longer and retry once automatically
-      if(!isRetry&&/rate|too many requests/i.test(errStr)){
-        await cancellableSleep(10000);
+      // Rate limit hit — exponential backoff, up to 3 retries
+      // Backoff: 15s, 30s, 60s — covers the per-minute rolling window
+      if(retryCount<3&&/rate|too many requests/i.test(errStr)){
+        const backoff=[15000,30000,60000][retryCount];
+        await cancellableSleep(backoff);
         SE_LAST_CALL=Date.now();
-        return afFetch(ep,true);
+        return afFetch(ep,retryCount+1);
       }
       throw new Error(errStr);
     }
     return d;
   }catch(e){
+    if(e instanceof SECancelled||e.name==='SECancelled')throw e;
     throw new Error('Could not reach API-Football: '+e.message);
   }
 }
@@ -1304,7 +1307,6 @@ async function fetchDailyTips(){
   try{
     const todayOnly=document.getElementById('todayOnlyToggle').checked;
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
-    // Fetch today always; fetch tomorrow only if today-only toggle is off
     const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
     const fdTomorrow=todayOnly?{response:[]}:await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
     const allResponse=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
