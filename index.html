@@ -247,8 +247,8 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge">v6.6.2</span>
+    <span class="badge badge-live" id="liveBadge">LIVE</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -270,10 +270,6 @@ th{color:var(--muted);font-weight:700}
       <div><label>League Filter</label><select id="tipsLeagueFilter"><option value="all">All Leagues Worldwide</option><option value="major">Top Leagues Only</option><option value="europe">European Leagues</option></select></div>
       <div><label>Confidence Level</label><select id="tipsConfidence"><option value="any">Show All</option><option value="med" selected>Medium+</option><option value="high">High Only</option></select></div>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer">
-      <input type="checkbox" id="todayOnlyToggle" style="width:auto">
-      <span style="font-size:12px;color:var(--dim)">Today only <span style="color:var(--muted);font-size:11px">— uncheck to include tomorrow's fixtures</span></span>
-    </label>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" id="tipsFetchBtn" onclick="fetchDailyTips()">🔥 Generate Today's Tips</button>
       <button class="btn btn-ghost" id="tipsCancelBtn" onclick="cancelDailyTips()" style="display:none;flex:0 0 auto;width:auto;padding:12px 18px">✕ Cancel</button>
@@ -1300,32 +1296,20 @@ async function fetchDailyTips(){
   }
   const now=new Date();
   const today=now.toISOString().slice(0,10);
-  const tomorrow=new Date(now.getTime()+86400000).toISOString().slice(0,10);
   const lf=document.getElementById('tipsLeagueFilter').value;
   const cf=document.getElementById('tipsConfidence').value;
   const leagueIds=AF_LEAGUES[lf]||AF_LEAGUES.all;
   try{
-    const todayOnly=document.getElementById('todayOnlyToggle').checked;
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
-    const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
-    const fdTomorrow=todayOnly?{response:[]}:await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
-    const allResponse=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
+    const fd=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
+    const allFixturesRaw=fd.response||[];
 
-    // Filter to fixtures that:
-    // 1. Match the selected league filter
-    // 2. Have a kickoff time strictly in the future — we use the actual timestamp
-    //    rather than relying solely on API status, because lower-tier league statuses
-    //    can lag hours (a 17:30 game can still show as NS at 21:30).
-    let allFixtures=allResponse
+    let allFixtures=allFixturesRaw
       .filter(f=>lf==='all'||leagueIds.includes(f.league.id))
       .filter(f=>!BLOCKED_LEAGUES.has(f.league.id))
       .filter(f=>{
         const ko=f.fixture.date?new Date(f.fixture.date):null;
         const isFuture=ko&&ko>now;
-        // Explicitly whitelist only genuinely scheduled statuses.
-        // PST=Postponed, CANC=Cancelled, ABD=Abandoned, AWD=Awarded, WO=Walkover
-        // are all excluded — a postponed game can still have a future timestamp
-        // if the API hasn't updated the date yet, so status check is essential.
         const isScheduled=['NS','TBD'].includes(f.fixture.status.short);
         return isFuture&&isScheduled;
       });
@@ -1333,7 +1317,7 @@ async function fetchDailyTips(){
     const total=allFixtures.length;
 
     if(!total){
-      document.getElementById('tipsErr').textContent='No upcoming fixtures found for today or tomorrow ('+today+' / '+tomorrow+'). This usually means the API key has no requests left, or there genuinely are no scheduled matches in this filter.';
+      document.getElementById('tipsErr').textContent='No upcoming fixtures found for today ('+today+'). This usually means the API key has no requests left, or there genuinely are no scheduled matches in this filter today.';
       document.getElementById('tipsEmpty').style.display='block';
       document.getElementById('tipsProgress').style.display='none';
       return;
@@ -1343,15 +1327,13 @@ async function fetchDailyTips(){
     // This maximises quality within the API call budget — but ALL leagues are eligible
     allFixtures.sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
 
-    // Build a league summary for the debug panel — shows ID, name, tier and
-    // fixture count for everything found today/tomorrow. Useful for identifying unknown
-    // leagues (tier 10) so their IDs can be added to LEAGUE_TIERS.
+    // Build a league summary for the debug panel
     const leagueSummary=[...new Map(
-      allResponse
+      allFixturesRaw
         .filter(f=>['NS','TBD'].includes(f.fixture.status.short))
         .map(f=>[f.league.id,{id:f.league.id,name:f.league.name,country:f.league.country,tier:leagueTier(f.league.id),count:0}])
     ).values()];
-    allResponse.filter(f=>['NS','TBD'].includes(f.fixture.status.short))
+    allFixturesRaw.filter(f=>['NS','TBD'].includes(f.fixture.status.short))
       .forEach(f=>{const l=leagueSummary.find(l=>l.id===f.league.id);if(l)l.count++;});
     leagueSummary.sort((a,b)=>b.tier-a.tier);
     window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
