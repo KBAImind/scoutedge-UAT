@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.4</span>
+    <span class="badge">v6.6.5</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -790,18 +790,12 @@ const AF_LEAGUES={all:[39,140,135,78,61,94,88,40,41,42,43,71,307,253,1,2,3,848,1
 function updateTipsUI(){document.getElementById('tipsApiHint').style.display=KEYS.af?'none':'block';document.getElementById('tipsFetchBtn').disabled=!KEYS.af;}
 function setProgress(title,text,p){document.getElementById('tipsProgress').style.display='block';document.getElementById('tipsProgressTitle').textContent=title;document.getElementById('tipsProgressText').textContent=text;document.getElementById('tipsProgressBar').style.width=p+'%';}
 // api-sports.io does not send CORS headers, so direct browser calls are blocked.
-// We route through a CORS proxy. Two proxies are configured — if the primary
-// gets rate limited, we automatically fall back to the secondary.
-const CORS_PROXIES=[
-  'https://corsproxy.io/?url=',
-  'https://api.allorigins.win/raw?url=',
-];
+// Requests are routed through a dedicated Cloudflare Worker proxy which adds
+// the required CORS headers. This is rate-limit free and fully owned by you.
+const CORS_PROXIES=['https://mozart.kristian-barrett.workers.dev/?url='];
 let activeProxyIndex=0;
 function getCorsProxy(){return CORS_PROXIES[activeProxyIndex];}
-function switchProxy(){
-  activeProxyIndex=(activeProxyIndex+1)%CORS_PROXIES.length;
-  console.warn('Switched to proxy:',CORS_PROXIES[activeProxyIndex]);
-}
+function switchProxy(){activeProxyIndex=(activeProxyIndex+1)%CORS_PROXIES.length;}
 
 // API-Football Pro plan allows 300 requests/minute (5 req/sec hard limit).
 // 250ms between calls = 4 req/sec — 20% safety margin under the ceiling.
