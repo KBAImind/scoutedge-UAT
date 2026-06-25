@@ -247,8 +247,8 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.2</span>
-    <span class="badge badge-live" id="liveBadge">UAT2</span>
+    <span class="badge">v6.6.3</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -831,12 +831,23 @@ async function afFetch(ep,retryCount=0){
   const proxiedUrl=CORS_PROXY+encodeURIComponent(targetUrl);
   try{
     const res=await fetch(proxiedUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af}});
+    // Handle HTTP 429 (Too Many Requests) with exponential backoff —
+    // same as JSON rate limit errors. Previously this threw immediately,
+    // causing rapid retries that made the rate limit worse.
+    if(res.status===429){
+      if(retryCount<3){
+        const backoff=[15000,30000,60000][retryCount];
+        await cancellableSleep(backoff);
+        SE_LAST_CALL=Date.now();
+        return afFetch(ep,retryCount+1);
+      }
+      throw new Error('Rate limit persists after retries. Wait 60s before trying again.');
+    }
     if(!res.ok)throw new Error('API error '+res.status);
     const d=await res.json();
     if(d&&d.errors&&Array.isArray(d.errors)===false&&Object.keys(d.errors).length>0){
       const errStr=JSON.stringify(d.errors);
-      // Rate limit hit — exponential backoff, up to 3 retries
-      // Backoff: 15s, 30s, 60s — covers the per-minute rolling window
+      // JSON-level rate limit errors — same backoff
       if(retryCount<3&&/rate|too many requests/i.test(errStr)){
         const backoff=[15000,30000,60000][retryCount];
         await cancellableSleep(backoff);
@@ -1286,7 +1297,12 @@ async function fetchDailyTips(){
   setProgress('Verifying API key…','Checking your API-Football connection…',5);
   const keyCheck=await verifyAfKey();
   if(!keyCheck.ok){
-    document.getElementById('tipsErr').textContent='❌ API key error: '+keyCheck.msg+'. Go to ⚙️ Settings and re-enter your API-Football key.';
+    // Check if it's a rate limit issue — give more helpful message
+    const isRateLimit=/rate|429|too many/i.test(keyCheck.msg||'');
+    const errMsg=isRateLimit
+      ?'⏳ Rate limit hit. The app will automatically retry — please wait up to 60 seconds, or wait a minute and try again manually.'
+      :'❌ API key error: '+keyCheck.msg+'. Go to ⚙️ Settings and re-enter your API-Football key.';
+    document.getElementById('tipsErr').textContent=errMsg;
     document.getElementById('tipsProgress').style.display='none';
     tipsRunning=false;btn.disabled=false;btn.textContent='🔥 Generate Today’s Tips';
     return;
@@ -1296,19 +1312,27 @@ async function fetchDailyTips(){
   }
   const now=new Date();
   const today=now.toISOString().slice(0,10);
+  const tomorrow=new Date(now.getTime()+86400000).toISOString().slice(0,10);
   const lf=document.getElementById('tipsLeagueFilter').value;
   const cf=document.getElementById('tipsConfidence').value;
   const leagueIds=AF_LEAGUES[lf]||AF_LEAGUES.all;
   try{
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
-    // Fetch today's fixtures plus tomorrow's in two sequential calls.
-    // The from/to endpoint requires a league or team parameter so we can't
-    // use it for a global scan — date= is the correct approach here.
-    // Both calls go through afFetch so the 250ms rate limit gap is enforced
-    // between them, preventing the rate limit errors seen previously.
-    const tomorrow=new Date(now.getTime()+86400000).toISOString().slice(0,10);
+    // Fetch today's fixtures first
     const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
-    const fdTomorrow=await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
+    // Fetch tomorrow's fixtures — if this fails due to rate limiting,
+    // gracefully fall back to today only rather than killing the whole scan
+    let fdTomorrow={response:[]};
+    try{
+      fdTomorrow=await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
+    }catch(e){
+      // Non-fatal — today's fixtures are enough to run a scan
+      if(!(e instanceof SECancelled||e.name==='SECancelled')){
+        document.getElementById('tipsErr').textContent='⚠️ Could not fetch tomorrow\'s fixtures ('+e.message.slice(0,60)+'). Showing today only.';
+      } else {
+        throw e;
+      }
+    }
     const allFixturesRaw=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
 
     let allFixtures=allFixturesRaw
