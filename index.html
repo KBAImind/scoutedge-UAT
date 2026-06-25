@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.3</span>
+    <span class="badge">v6.6.4</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -790,11 +790,18 @@ const AF_LEAGUES={all:[39,140,135,78,61,94,88,40,41,42,43,71,307,253,1,2,3,848,1
 function updateTipsUI(){document.getElementById('tipsApiHint').style.display=KEYS.af?'none':'block';document.getElementById('tipsFetchBtn').disabled=!KEYS.af;}
 function setProgress(title,text,p){document.getElementById('tipsProgress').style.display='block';document.getElementById('tipsProgressTitle').textContent=title;document.getElementById('tipsProgressText').textContent=text;document.getElementById('tipsProgressBar').style.width=p+'%';}
 // api-sports.io does not send CORS headers, so direct browser calls are blocked.
-// We route through a free CORS proxy (corsproxy.io) which explicitly supports
-// GitHub Pages (.github.io) as a free origin. The API key still goes in the
-// x-apisports-key header exactly as api-sports.io requires — the proxy just
-// relays the request and attaches the missing CORS headers to the response.
-const CORS_PROXY='https://corsproxy.io/?url=';
+// We route through a CORS proxy. Two proxies are configured — if the primary
+// gets rate limited, we automatically fall back to the secondary.
+const CORS_PROXIES=[
+  'https://corsproxy.io/?url=',
+  'https://api.allorigins.win/raw?url=',
+];
+let activeProxyIndex=0;
+function getCorsProxy(){return CORS_PROXIES[activeProxyIndex];}
+function switchProxy(){
+  activeProxyIndex=(activeProxyIndex+1)%CORS_PROXIES.length;
+  console.warn('Switched to proxy:',CORS_PROXIES[activeProxyIndex]);
+}
 
 // API-Football Pro plan allows 300 requests/minute (5 req/sec hard limit).
 // 250ms between calls = 4 req/sec — 20% safety margin under the ceiling.
@@ -828,15 +835,21 @@ async function afFetch(ep,retryCount=0){
   SE_LAST_CALL=Date.now();
 
   const targetUrl='https://v3.football.api-sports.io'+ep;
-  const proxiedUrl=CORS_PROXY+encodeURIComponent(targetUrl);
+  const proxiedUrl=getCorsProxy()+encodeURIComponent(targetUrl);
   try{
     const res=await fetch(proxiedUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af}});
-    // Handle HTTP 429 (Too Many Requests) with exponential backoff —
-    // same as JSON rate limit errors. Previously this threw immediately,
-    // causing rapid retries that made the rate limit worse.
+    // Handle HTTP 429 — could be from API-Football OR the CORS proxy itself.
+    // On first 429, try switching to the backup proxy before backing off.
     if(res.status===429){
+      if(retryCount===0){
+        // Try the other proxy first before waiting
+        switchProxy();
+        await cancellableSleep(2000);
+        SE_LAST_CALL=Date.now();
+        return afFetch(ep,retryCount+1);
+      }
       if(retryCount<3){
-        const backoff=[15000,30000,60000][retryCount];
+        const backoff=[15000,30000,60000][retryCount-1];
         await cancellableSleep(backoff);
         SE_LAST_CALL=Date.now();
         return afFetch(ep,retryCount+1);
