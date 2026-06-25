@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.5</span>
+    <span class="badge">v6.6.6</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -2018,7 +2018,7 @@ function buildTipPrediction(md,injuryMap){
       +'\n  Market: '+hName+' win '+(mktOdds.hw*100).toFixed(1)+'% · Draw '+(mktOdds.d*100).toFixed(1)+'% · '+aName+' win '+(mktOdds.aw*100).toFixed(1)+'%'
       +'\n  Blended: '+hName+' win '+(blendedHW*100).toFixed(1)+'% · Draw '+(blendedD*100).toFixed(1)+'% · '+aName+' win '+(blendedAW*100).toFixed(1)+'%';
   }
-  const top=topN(blendedMatrix,6,6);
+  const top=topN(blendedMatrix,6,10);
 
   // ── SCORELINE SELECTION — >8% THRESHOLD ──────────────────────────────────
   // Only consider scorelines with >8% individual probability, then pick the
@@ -2139,12 +2139,18 @@ function renderTips(tips,date,totalFound,eligibleCount){
     const domLabel=ratio>=1.8?'Strong pick — well clear of alternatives':ratio>=1.4?'Moderate edge over next best':ratio>=1.1?'Narrow edge — alternatives close behind':'Near-equal alternatives';
     const domCol=ratio>=1.8?'var(--green)':ratio>=1.4?'var(--draw)':'var(--orange)';
     const domHtml='<div style="font-size:9px;margin-top:4px;color:'+domCol+'">'+ratio.toFixed(2)+'&times; more likely than next best &middot; '+domLabel+'</div>';
-    // Alternative scoreline cards
-    const altCards=t.top.slice(0,3).map((s,si)=>{
+    // Alternative scoreline cards — show top 5 instead of 3
+    const altCards=t.top.slice(0,5).map((s,si)=>{
       const relStr=si===0?'':(s.p>0&&t.predicted.p>0?' &middot; '+(t.predicted.p/s.p).toFixed(1)+'&times; behind top':'');
       const border=si===0?'var(--accent)':'var(--border)';
       return '<div style="background:var(--bg2);border:1px solid '+border+';border-radius:8px;padding:7px;text-align:center"><div style="font-size:14px;font-weight:900;color:white">'+s.h+'&ndash;'+s.a+'</div><div style="font-size:9px;color:var(--muted);margin-top:2px">'+pct(s.p)+relStr+'</div></div>';
     }).join('');
+    // High-score spread note — surfaces meaningful probability at higher scorelines
+    // so you can see when a heavy win is plausible even if not the top pick
+    const highScoreProb=t.top.filter(s=>(s.h+s.a)>=4).reduce((acc,s)=>acc+s.p,0);
+    const highScoreNote=highScoreProb>=0.15
+      ?'<div style="font-size:9px;color:var(--draw);margin-top:6px;padding:4px 8px;background:rgba(255,200,0,0.08);border-radius:4px">⚡ '+(highScoreProb*100).toFixed(0)+'% combined probability on scorelines with 4+ total goals — heavy result possible</div>'
+      :'';
     html+=`<div class="tip-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="tip-rank ${rc}">${rank}</div><div style="text-align:right;font-size:10px;color:var(--dim)">${koDisplay}</div></div>
       <div class="tip-competition">${t.leagueName}${t.country?' · '+t.country:''}</div>
@@ -2156,7 +2162,7 @@ function renderTips(tips,date,totalFound,eligibleCount){
         <div class="bar-row" style="margin-bottom:5px"><div class="bar-label"><span style="font-size:10px">Draw</span><span style="font-size:10px">${pct(t.outcomes.d)}</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pct(t.outcomes.d)};background:var(--draw)"></div></div></div>
         <div class="bar-row"><div class="bar-label"><span style="font-size:10px">${t.awayName} Win</span><span style="font-size:10px">${pct(t.outcomes.aw)}</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pct(t.outcomes.aw)};background:var(--lose)"></div></div></div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">${altCards}</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px">${altCards}</div>${highScoreNote}
       <div class="tip-meta-row">${t.venue!=='home'?'<span class="tip-tag tip-tag-venue">⚖️ Neutral venue</span>':''}${t.injuryTags.length?'<span class="tip-tag tip-tag-injury">🚑 '+t.injuryTags.length+' injury flag'+(t.injuryTags.length>1?'s':'')+'</span>':''}${t.isIntl?'<span class="tip-tag tip-tag-source">🌍 Multi-source intl stats</span>':'<span class="tip-tag tip-tag-source">'+(t.hasStats?'Live stats':'League avg')+'</span>'}</div>
       <button class="tip-expand-btn" onclick="toggleTipDetail(${i})">▼ Full analysis</button>
       <div class="tip-detail" id="tipDetail-${i}"><div class="tip-detail-text">${t.detail}</div></div>
