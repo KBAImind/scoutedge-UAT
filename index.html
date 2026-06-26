@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.7</span>
+    <span class="badge">v6.6.8</span>
     <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
@@ -1602,16 +1602,23 @@ async function fetchDailyTips(){
         f._resolvedSeason=resolvedSeason;
 
         // ── RECENT FORM FETCH ───────────────────────────────────────────────
-        // Fetch last 10 fixtures for each club team and compute a form-weighted
-        // goals average. Blended 60% recent form / 40% full season stats.
-        // This replaces September's results carrying the same weight as last week.
-        // Only fetched when we have season stats (avoids wasting calls on fixtures
-        // that will be skipped by the sample gate anyway).
-        if(homeStats&&awayStats){
+        // Only fetch recent form when the season sample is thin (under 15 games
+        // played for either team). With 15+ games the season average is robust
+        // enough that recent form adds marginal accuracy versus the 2 extra API
+        // calls it costs (~1100ms per fixture). For well-documented leagues
+        // mid-season this skips the form fetch entirely, cutting Step 2 time
+        // by ~40%. For early-season or cup fixtures with few games, it still
+        // fetches to compensate for the thin sample.
+        const hGP=homeStats&&homeStats.fixtures&&homeStats.fixtures.played?
+          (homeStats.fixtures.played.total||0):0;
+        const aGP=awayStats&&awayStats.fixtures&&awayStats.fixtures.played?
+          (awayStats.fixtures.played.total||0):0;
+        const needsFormFetch=homeStats&&awayStats&&(hGP<15||aGP<15);
+        if(needsFormFetch){
           try{
             const hForm=await afFetch('/fixtures?team='+f.teams.home.id+'&last=10&season='+resolvedSeason);
             const aForm=await afFetch('/fixtures?team='+f.teams.away.id+'&last=10&season='+resolvedSeason);
-            const calcFormAvg=(fixtures,teamId,side)=>{
+            const calcFormAvg=(fixtures,teamId)=>{
               const finished=(fixtures.response||[]).filter(g=>g.fixture.status.short==='FT');
               if(!finished.length)return null;
               let gf=0,ga=0;
@@ -1622,8 +1629,8 @@ async function fetchDailyTips(){
               });
               return{scored:gf/finished.length,conceded:ga/finished.length,gp:finished.length};
             };
-            const hRecent=calcFormAvg(hForm,f.teams.home.id,'home');
-            const aRecent=calcFormAvg(aForm,f.teams.away.id,'away');
+            const hRecent=calcFormAvg(hForm,f.teams.home.id);
+            const aRecent=calcFormAvg(aForm,f.teams.away.id);
             if(hRecent){homeStats._recentScored=hRecent.scored;homeStats._recentConceded=hRecent.conceded;homeStats._recentGP=hRecent.gp;}
             if(aRecent){awayStats._recentScored=aRecent.scored;awayStats._recentConceded=aRecent.conceded;awayStats._recentGP=aRecent.gp;}
           }catch(e){}
@@ -1707,10 +1714,11 @@ async function fetchDailyTips(){
 
       matchData.push({fixture:f,home:homeStats,away:awayStats,tier:leagueTier(f.league.id),isIntl,homePlayers,awayPlayers,h2hData,odds:fixtureOdds});
       const remaining=toProcess.length-(i+1);
-      // Each fixture makes ~5-6 API calls (stats x2, form x2, H2H x1, + injury share)
-      // Each call takes the gap (250ms) plus network overhead (~300ms) = ~550ms effective
-      // International fixtures may take longer due to multi-source stats fetch
-      const callsPerFixture=isIntl?8:5.6;
+      // Each fixture makes 3-5 API calls depending on sample size:
+      // Always: stats x2 + H2H x1 = 3 calls
+      // If season sample thin (<15 games): + form x2 = 5 calls
+      // Most mid-season fixtures skip the form fetch = ~3.5 calls average
+      const callsPerFixture=isIntl?6:3.5;
       const msPerFixture=callsPerFixture*(SE_MIN_GAP_MS+300);
       const etaSec=Math.round(remaining*msPerFixture/1000);
       const etaText=etaSec>60?Math.ceil(etaSec/60)+'min '+Math.round(etaSec%60)+'s left':etaSec+'s left';
