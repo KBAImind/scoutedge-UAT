@@ -1387,18 +1387,19 @@ async function fetchDailyTips(){
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
     // Fetch today's fixtures first
     const fdToday=await afFetch('/fixtures?date='+today+'&timezone=Europe/London');
-    // Fetch tomorrow's fixtures — if this fails due to rate limiting,
-    // gracefully fall back to today only rather than killing the whole scan
+    // Fetch tomorrow's fixtures — non-essential, skip immediately on any error
+    // rather than waiting through the 15s/30s/60s retry backoff
     let fdTomorrow={response:[]};
     try{
-      fdTomorrow=await afFetch('/fixtures?date='+tomorrow+'&timezone=Europe/London');
-    }catch(e){
-      // Non-fatal — today's fixtures are enough to run a scan
-      if(!(e instanceof SECancelled||e.name==='SECancelled')){
-        document.getElementById('tipsErr').textContent='⚠️ Could not fetch tomorrow\'s fixtures ('+e.message.slice(0,60)+'). Showing today only.';
-      } else {
-        throw e;
+      // Use a direct fetch bypassing the retry logic for the tomorrow call
+      const tomorrowUrl=getCorsProxy()+encodeURIComponent('https://v3.football.api-sports.io/fixtures?date='+tomorrow+'&timezone=Europe/London');
+      const tRes=await fetch(tomorrowUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af}});
+      if(tRes.ok){
+        const tData=await tRes.json();
+        if(tData&&!Object.keys(tData.errors||{}).length)fdTomorrow=tData;
       }
+    }catch(e){
+      document.getElementById('tipsErr').textContent='\u26a0\ufe0f Could not fetch tomorrow\'s fixtures. Showing today only.';
     }
     const allFixturesRaw=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
 
@@ -1436,10 +1437,18 @@ async function fetchDailyTips(){
     leagueSummary.sort((a,b)=>b.tier-a.tier);
     window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
 
-    // Process up to 15 fixtures — balances accuracy with scan speed.
-    // Each fixture makes ~5-6 API calls (stats, form, H2H, injury share)
-    // so 15 fixtures = ~85 calls, keeping scan time around 45-50 seconds.
-    const toProcess=allFixtures.slice(0,15);
+    // Process up to 15 fixtures with a cap of 5 international fixtures.
+    // Each international fixture (WC etc) makes up to 16 API calls vs 3-5
+    // for club fixtures — without the cap, 8 WC games alone take 10+ minutes.
+    const MAX_INTL_IN_SCAN=5;
+    let intlSeen=0;
+    const toProcess=allFixtures.filter(f=>{
+      if(INTERNATIONAL_LEAGUES.has(f.league.id)){
+        if(intlSeen>=MAX_INTL_IN_SCAN)return false;
+        intlSeen++;
+      }
+      return true;
+    }).slice(0,15);
 
     // Warn if the majority of processable fixtures are from low-tier/unknown leagues
     const unknownInTop=toProcess.filter(f=>leagueTier(f.league.id)<=10).length;
