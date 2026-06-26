@@ -284,6 +284,7 @@ th{color:var(--muted);font-weight:700}
     <div class="tips-progress-title" id="tipsProgressTitle">Scanning leagues…</div>
     <div class="tips-progress-text" id="tipsProgressText">Fetching fixtures worldwide</div>
     <div class="tips-progress-bar-wrap"><div class="tips-progress-bar" id="tipsProgressBar" style="width:0%"></div></div>
+    <div id="tipsProgressTimer" style="font-size:10px;color:var(--dim);margin-top:4px;font-family:monospace"></div>
   </div>
   <div id="tipsErr" class="err" style="margin-bottom:12px"></div>
   <div id="tipsDebugPanel" style="display:none" class="card">
@@ -776,6 +777,30 @@ const KEYS=(()=>{try{return JSON.parse(localStorage.getItem('se_keys')||'{}')}ca
 // ═══ DAILY TIPS ═══════════════════════════════════
 let tipsRunning=false;
 let tipsCancelled=false;
+let SE_SCAN_START=0;
+let SE_TIMER_INTERVAL=null;
+function startScanTimer(){
+  SE_SCAN_START=Date.now();
+  const timerEl=document.getElementById('tipsProgressTimer');
+  if(SE_TIMER_INTERVAL)clearInterval(SE_TIMER_INTERVAL);
+  SE_TIMER_INTERVAL=setInterval(()=>{
+    if(!timerEl)return;
+    const elapsed=Math.floor((Date.now()-SE_SCAN_START)/1000);
+    const m=Math.floor(elapsed/60);
+    const s=String(elapsed%60).padStart(2,'0');
+    timerEl.textContent='⏱ '+( m>0?m+'m '+s+'s':elapsed+'s')+' elapsed';
+  },1000);
+}
+function stopScanTimer(completed){
+  if(SE_TIMER_INTERVAL){clearInterval(SE_TIMER_INTERVAL);SE_TIMER_INTERVAL=null;}
+  const timerEl=document.getElementById('tipsProgressTimer');
+  if(timerEl&&completed){
+    const elapsed=Math.floor((Date.now()-SE_SCAN_START)/1000);
+    const m=Math.floor(elapsed/60);
+    const s=elapsed%60;
+    timerEl.textContent='✓ Completed in '+(m>0?m+'m '+s+'s':elapsed+'s');
+  }
+}
 
 function cancelDailyTips(){
   tipsCancelled=true;
@@ -1292,6 +1317,7 @@ async function fetchDailyTips(){
   if(tipsRunning||!KEYS.af)return;
   tipsRunning=true;
   tipsCancelled=false;
+  startScanTimer();
   const btn=document.getElementById('tipsFetchBtn');
   btn.disabled=true;btn.textContent='Scanning…';
   document.getElementById('tipsCancelBtn').style.display='inline-block';
@@ -1723,7 +1749,7 @@ async function fetchDailyTips(){
       const etaSec=Math.round(remaining*msPerFixture/1000);
       const etaText=etaSec>60?Math.ceil(etaSec/60)+'min '+Math.round(etaSec%60)+'s left':etaSec+'s left';
       setProgress('Step 2 of 4 — Fetching team stats',
-        (i+1)+'/'+toProcess.length+': '+mHomeName(f)+' vs '+mAwayName(f)+' ('+f.league.name+') · ~'+etaText,
+        (i+1)+'/'+toProcess.length+': '+mHomeName(f)+' vs '+mAwayName(f)+' ('+f.league.name+')',
         15+Math.round((i+1)/toProcess.length*45));
     }
 
@@ -1794,6 +1820,7 @@ async function fetchDailyTips(){
 
     const top10=deduped.slice(0,10);
     document.getElementById('tipsProgress').style.display='none';
+    stopScanTimer(true);
     if(!top10.length){
       document.getElementById('tipsErr').textContent='Found '+total+' fixtures and processed '+toProcess.length+' of them, but '+matchData.length+' returned no usable team stats from the API (predictions skipped to avoid showing fake data), and '+predictions.length+' passed stats but were filtered out by your confidence setting. Try setting Confidence Level to \'Show All\', or check back when more fixtures have stats published closer to kick-off.';
       document.getElementById('tipsEmpty').style.display='block';
@@ -1801,6 +1828,7 @@ async function fetchDailyTips(){
     }
     renderTips(top10,today,total,toProcess.length);
   }catch(e){
+    stopScanTimer(false);
     if(e instanceof SECancelled||e.name==='SECancelled'){
       document.getElementById('tipsErr').textContent='⏹️ Scan cancelled. No tips were generated.';
       document.getElementById('tipsProgress').style.display='none';
