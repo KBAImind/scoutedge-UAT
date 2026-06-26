@@ -247,8 +247,8 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.6</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge">v6.6.7</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1376,8 +1376,10 @@ async function fetchDailyTips(){
     leagueSummary.sort((a,b)=>b.tier-a.tier);
     window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
 
-    // Process up to 25 fixtures — each = 2 stat calls (home + away)
-    const toProcess=allFixtures.slice(0,25);
+    // Process up to 15 fixtures — balances accuracy with scan speed.
+    // Each fixture makes ~5-6 API calls (stats, form, H2H, injury share)
+    // so 15 fixtures = ~85 calls, keeping scan time around 45-50 seconds.
+    const toProcess=allFixtures.slice(0,15);
 
     // Warn if the majority of processable fixtures are from low-tier/unknown leagues
     const unknownInTop=toProcess.filter(f=>leagueTier(f.league.id)<=10).length;
@@ -1705,8 +1707,13 @@ async function fetchDailyTips(){
 
       matchData.push({fixture:f,home:homeStats,away:awayStats,tier:leagueTier(f.league.id),isIntl,homePlayers,awayPlayers,h2hData,odds:fixtureOdds});
       const remaining=toProcess.length-(i+1);
-      const etaSec=Math.round(remaining*2*(SE_MIN_GAP_MS/1000));
-      const etaText=etaSec>60?Math.ceil(etaSec/60)+' min left':etaSec+'s left';
+      // Each fixture makes ~5-6 API calls (stats x2, form x2, H2H x1, + injury share)
+      // Each call takes the gap (250ms) plus network overhead (~300ms) = ~550ms effective
+      // International fixtures may take longer due to multi-source stats fetch
+      const callsPerFixture=isIntl?8:5.6;
+      const msPerFixture=callsPerFixture*(SE_MIN_GAP_MS+300);
+      const etaSec=Math.round(remaining*msPerFixture/1000);
+      const etaText=etaSec>60?Math.ceil(etaSec/60)+'min '+Math.round(etaSec%60)+'s left':etaSec+'s left';
       setProgress('Step 2 of 4 — Fetching team stats',
         (i+1)+'/'+toProcess.length+': '+mHomeName(f)+' vs '+mAwayName(f)+' ('+f.league.name+') · ~'+etaText,
         15+Math.round((i+1)/toProcess.length*45));
@@ -1742,7 +1749,7 @@ async function fetchDailyTips(){
 
     setProgress('Step 3 of 4 — Checking injuries','Fetching injury and suspension reports…',62);
     const injuryMap={};
-    const injuryCheckCount=window.SE_PAID_TIER?Math.min(matchData.length,15):Math.min(matchData.length,6);
+    const injuryCheckCount=window.SE_PAID_TIER?Math.min(matchData.length,10):Math.min(matchData.length,6);
     for(let i=0;i<injuryCheckCount;i++){
       if(tipsCancelled)throw new SECancelled();
       const f=matchData[i].fixture;
