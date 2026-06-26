@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.6.8</span>
+    <span class="badge">v6.7.0</span>
     <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
@@ -493,9 +493,9 @@ th{color:var(--muted);font-weight:700}
           <div class="field"><label>Stake (£)</label><input type="number" step="0.01" id="s_stake" placeholder="e.g. 5.00" oninput="calcSingleOdds()"></div>
           <div class="field"><label>Return (£)</label><input type="number" step="0.01" id="s_return" placeholder="e.g. 500.00" oninput="calcSingleOdds()"></div>
         </div>
-        <div class="field"><label>Estimated Odds from Betslip (optional)</label><input type="text" id="s_estOdds" placeholder="e.g. 99/1 or 100.0 or +9900" oninput="calcSingleOdds()"></div>
+        <div class="field"><label>Target Combined Odds</label><input type="text" id="s_estOdds" placeholder="e.g. 200/1 — the combined odds you are aiming for" oninput="calcSingleOdds()"></div>
         <div id="s_oddsRange" style="display:none" class="range-box">
-          <div class="range-title">Search Range</div>
+          <div class="range-title">Derived Search Range</div>
           <div class="range-row">
             <span id="s_rangeLow" class="range-val">—</span>
             <span class="range-arrow">→</span>
@@ -511,6 +511,19 @@ th{color:var(--muted);font-weight:700}
             <option value="0.1" selected>Standard (±10%)</option>
             <option value="0.2">Loose (±20%)</option>
           </select>
+        </div>
+        <div class="match-block" style="margin-top:12px;background:var(--bg3);border:1px solid var(--border)">
+          <div class="match-block-title">Per-Team Odds Ranges (Optional)</div>
+          <p class="hint" style="margin-bottom:10px">Set the odds range you expect each team’s scoreline to fall within. Both ranges must be satisfied and the combined product should reach your target odds above.</p>
+          <div class="grid2">
+            <div class="field"><label>Home Team — Odds From</label><input type="number" step="1" id="s_homeOddsFrom" placeholder="e.g. 8"></div>
+            <div class="field"><label>Home Team — Odds To</label><input type="number" step="1" id="s_homeOddsTo" placeholder="e.g. 15"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Away Team — Odds From</label><input type="number" step="1" id="s_awayOddsFrom" placeholder="e.g. 15"></div>
+            <div class="field"><label>Away Team — Odds To</label><input type="number" step="1" id="s_awayOddsTo" placeholder="e.g. 22"></div>
+          </div>
+          <p class="hint">Enter fractional odds as a single number (e.g. 8 = 8/1 = 9.0 decimal). Leave blank to search all scorelines for that team.</p>
         </div>
         <div class="field">
           <label>Display Odds As</label>
@@ -634,13 +647,40 @@ th{color:var(--muted);font-weight:700}
           <div class="field"><label>Stake (£)</label><input type="number" step="0.01" id="d_stake" placeholder="e.g. 2.00" oninput="calcDoubleOdds()"></div>
           <div class="field"><label>Return (£)</label><input type="number" step="0.01" id="d_return" placeholder="e.g. 800.00" oninput="calcDoubleOdds()"></div>
         </div>
-        <div class="field"><label>Estimated Odds from Betslip (optional)</label><input type="text" id="d_estOdds" placeholder="e.g. 399/1 or 400.0" oninput="calcDoubleOdds()"></div>
+        <div class="field"><label>Target Combined Odds</label><input type="text" id="d_estOdds" placeholder="e.g. 200/1 — the combined odds you are aiming for" oninput="calcDoubleOdds()"></div>
         <div id="d_oddsRange" style="display:none" class="range-box">
-          <div class="range-title">Search Range</div>
+          <div class="range-title">Derived Search Range</div>
           <div class="range-row"><span id="d_rangeLow" class="range-val">—</span><span class="range-arrow">→</span><span id="d_rangeHigh" class="range-val">—</span><span style="font-size:11px;color:var(--dim);margin-left:4px">decimal odds</span></div>
           <p class="range-note" id="d_rangeNote" style="display:none"></p>
         </div>
         <div class="field"><label>Tolerance</label><select id="d_tolerance"><option value="0.05">Tight (±5%)</option><option value="0.1" selected>Standard (±10%)</option><option value="0.2">Loose (±20%)</option></select></div>
+        <div class="match-block" style="margin-top:12px;background:var(--bg3);border:1px solid var(--border)">
+          <div class="match-block-title">Per-Team Odds Ranges (Optional)</div>
+          <p class="hint" style="margin-bottom:10px">Set the odds range for each team’s scoreline individually. All four ranges must be satisfied and the combined product should reach your target odds above.</p>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">Game 1</div>
+            <div class="grid2">
+              <div class="field"><label>Home Team — Odds From</label><input type="number" step="1" id="d_home1OddsFrom" placeholder="e.g. 8"></div>
+              <div class="field"><label>Home Team — Odds To</label><input type="number" step="1" id="d_home1OddsTo" placeholder="e.g. 15"></div>
+            </div>
+            <div class="grid2">
+              <div class="field"><label>Away Team — Odds From</label><input type="number" step="1" id="d_away1OddsFrom" placeholder="e.g. 15"></div>
+              <div class="field"><label>Away Team — Odds To</label><input type="number" step="1" id="d_away1OddsTo" placeholder="e.g. 22"></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">Game 2</div>
+            <div class="grid2">
+              <div class="field"><label>Home Team — Odds From</label><input type="number" step="1" id="d_home2OddsFrom" placeholder="e.g. 8"></div>
+              <div class="field"><label>Home Team — Odds To</label><input type="number" step="1" id="d_home2OddsTo" placeholder="e.g. 15"></div>
+            </div>
+            <div class="grid2">
+              <div class="field"><label>Away Team — Odds From</label><input type="number" step="1" id="d_away2OddsFrom" placeholder="e.g. 15"></div>
+              <div class="field"><label>Away Team — Odds To</label><input type="number" step="1" id="d_away2OddsTo" placeholder="e.g. 22"></div>
+            </div>
+          </div>
+          <p class="hint">Enter fractional odds as a single number (e.g. 8 = 8/1 = 9.0 decimal). Leave blank to search all scorelines for that team.</p>
+        </div>
         <div class="field">
           <label>Display Odds As</label>
           <div class="venue-pills">
@@ -989,49 +1029,43 @@ const RELIABLE_LEAGUES=new Set([
 // IDs confirmed from live debug data — add new ones here as they appear.
 const BLOCKED_LEAGUES=new Set([
   // ── YOUTH LEAGUES ──────────────────────────────────────────────────────────
-  740,   // Brasileiro U20 A (Brazil)
-  1128,  // Brasileiro U17 (Brazil)
-  1076,  // Catarinense U20 (Brazil)
+  740,1128,1076,1086,1100,1107,1120,1073,1143,1069,  // Brazilian youth
+  918,                                                 // UEFA U19 Women
   // ── WOMEN'S LEAGUES ────────────────────────────────────────────────────────
-  1117,  // USL W League (USA)
-  549,   // Damallsvenskan (Sweden)
-  // ── CUP COMPETITIONS (mixed-tier opponents, unreliable form signal) ─────────
-  267,   // Copa Chile
-  661,   // Cup (Lithuania)
-  115,   // Svenska Cupen (Sweden)
-  167,   // Cup (Iceland)
-  491,   // Løgmanssteypid (Faroe Islands cup)
-  672,   // David Kipiani Cup (Georgia)
-  1113,  // Copa Venezuela
-  1035,  // Copa Rio (Brazil)
-  1097,  // Copa Espírito Santo (Brazil)
-  // ── AMATEUR / REGIONAL / STATE COMPETITIONS ────────────────────────────────
-  1067,  // Torneo Promocional Amateur (Argentina)
-  851,   // Carioca A2 (Brazil)
-  619,   // Mineiro - 2 (Brazil)
-  936,   // Catarinense - 2 (Brazil)
-  1148,  // Maranhense - 2 (Brazil)
-  592,   // Division 2 - Norra Götaland (Sweden)
-  597,   // Division 2 - Södra Götaland (Sweden)
-  596,   // Division 2 - Västra Götaland (Sweden)
-  593,   // Division 2 - Norra Svealand (Sweden)
-  595,   // Division 2 - Södra Svealand (Sweden)
-  563,   // Ettan - Norra (Sweden)
-  774,   // 3. Division - Girone 1 (Norway)
-  366,   // 1. Deild (Faroe Islands second tier)
-  481,   // Northern NSW NPL (Australia)
-  1090,  // NNSW League 1 (Australia)
+  1117,549,915,660,641,1103,1229,1013,640,            // Women's leagues
+  // ── CUP / KNOCKOUT COMPETITIONS ────────────────────────────────────────────
+  267,661,115,167,491,672,1113,1035,1097,1158,        // Various cups
+  1232,                                                // Copa De La Liga Peru
   // ── FRIENDLIES ─────────────────────────────────────────────────────────────
-  667,   // Friendlies Clubs (World) — results are meaningless for prediction
+  667,                                                 // Friendlies Clubs (World)
+  // ── REGIONAL / STATE / AMATEUR ─────────────────────────────────────────────
+  1067,851,619,936,1148,                               // Brazilian state/amateur
+  1098,75,76,134,906,131,132,251,269,                  // Brazil Serie C/D, Argentina lower, Paraguay, Uruguay
+  592,597,596,593,595,563,564,                         // Swedish Division 2 groups
+  774,775,776,778,779,473,474,                         // Norwegian 3rd division groups
+  366,                                                 // Faroe Islands 2nd tier
+  // ── AUSTRALIAN SUB-LEAGUES ─────────────────────────────────────────────────
+  481,1090,1093,1230,648,650,482,1091,189,192,194,    // Australian NPL/state
+  834,835,833,195,196,1094,                            // More Australian state
   // ── VERY LOW TIER / INSUFFICIENT DATA ──────────────────────────────────────
-  652,   // Second League Group 2 (Russia)
-  929,   // League Two (China)
-  569,   // Premier League (Kyrgyzstan)
-  764,   // Premier League (Mongolia)
-  1031,  // Premier League (Bhutan)
-  968,   // Championnat D1 (Gabon)
-  256,   // USL League Two (USA — 4th tier)
-  489,   // USL League One (USA — 3rd tier, borderline)
+  652,650,651,929,170,569,764,1031,968,                // Low tier leagues
+  256,489,                                             // USL lower tiers
+  330,                                                 // Kuwait Premier League
+  571,                                                 // Tajikistan
+  969,                                                 // Macao
+  1182,                                                // Canada Northern Super League
+  295,                                                 // K3 League South Korea
+  401,                                                 // Zimbabwe Premier Soccer League
+  411,                                                 // Cameroon Elite One
+  363,                                                 // Ethiopia Premier League (low data)
+  364,                                                 // Latvia 1. Liga
+  389,                                                 // Kazakhstan Premier League
+  909,                                                 // MLS Next Pro
+  479,                                                 // Canadian Premier League (low data)
+  117,                                                 // Belarus 1. Division
+  247,248,249,                                         // Finnish Kakkonen groups
+  1087,                                                // Finnish Ykkösliiga
+  1086,                                                // Paulista U20
 ]);
 
 // International team IDs — these use different stat endpoints
@@ -2713,35 +2747,66 @@ function runSingle(){
   const away=document.getElementById('s_awayTeam').value.trim();
   if(!home||!away){document.getElementById('s_err').textContent='Enter both team names.';return;}
 
-  const range=calcOddsRange('s_stake','s_return','s_estOdds','s_oddsRange','s_rangeLow','s_rangeHigh','s_rangeNote');
-  if(!range){document.getElementById('s_err').textContent='Enter stake and return.';return;}
-
+  // Per-team odds ranges — convert fractional to decimal (8 = 8/1 = 9.0)
+  const homeOddsFrom=parseFloat(document.getElementById('s_homeOddsFrom').value);
+  const homeOddsTo=parseFloat(document.getElementById('s_homeOddsTo').value);
+  const awayOddsFrom=parseFloat(document.getElementById('s_awayOddsFrom').value);
+  const awayOddsTo=parseFloat(document.getElementById('s_awayOddsTo').value);
+  const hasHomeRange=!isNaN(homeOddsFrom)&&!isNaN(homeOddsTo)&&homeOddsFrom>0&&homeOddsTo>=homeOddsFrom;
+  const hasAwayRange=!isNaN(awayOddsFrom)&&!isNaN(awayOddsTo)&&awayOddsFrom>0&&awayOddsTo>=awayOddsFrom;
+  const hasPerTeamRange=hasHomeRange||hasAwayRange;
   const tol=parseFloat(document.getElementById('s_tolerance').value);
-  const{lo,hi,calcOdds}=range;
-  const profit=parseFloat(document.getElementById('s_return').value)-parseFloat(document.getElementById('s_stake').value);
 
-  // Get Poisson lambdas for these teams
+  // Derive combined target odds from stake/return or the Target Combined Odds field
+  const range=calcOddsRange('s_stake','s_return','s_estOdds','s_oddsRange','s_rangeLow','s_rangeHigh','s_rangeNote');
+  let lo,hi,calcOdds,profit=null;
+  if(range){
+    ({lo,hi,calcOdds}=range);
+    const ret=parseFloat(document.getElementById('s_return').value);
+    const stake=parseFloat(document.getElementById('s_stake').value);
+    if(!isNaN(ret)&&!isNaN(stake))profit=ret-stake;
+  } else {
+    // No stake/return — use target odds field directly if filled
+    const estRaw=document.getElementById('s_estOdds').value.trim();
+    const estOdds=estRaw?parseOdds(estRaw):0;
+    if(estOdds>1){lo=estOdds*(1-tol);hi=estOdds*(1+tol);calcOdds=estOdds;}
+    else if(!hasPerTeamRange){document.getElementById('s_err').textContent='Enter stake and return, or a Target Combined Odds, or set per-team ranges.';return;}
+  }
+
   const{lHome,lAway}=getMatchLambdas('s_homeAtk','s_homeDef','s_awayAtk','s_awayDef',sVenue);
   const db=buildOddsDB(sExtractedOdds,lHome,lAway);
 
-  // Extended search range with tolerance
-  const searchLo=lo*(1-tol);
-  const searchHi=hi*(1+tol);
-
+  // Filter by per-team ranges if set, otherwise use combined target range
   const matches=db.filter(s=>{
     const o=s.odds||s.poissonOdds;
-    return o>=searchLo&&o<=searchHi;
+    // Determine if this scoreline is "home" or "away" result
+    const isHomeScore=s.h>s.a;
+    const isAwayScore=s.a>s.h;
+    const isDrawScore=s.h===s.a;
+    // Per-team range filtering — for a home scoreline check home range, away scoreline check away range
+    if(hasHomeRange){
+      const homeDecLo=homeOddsFrom+1, homeDecHi=homeOddsTo+1;
+      if((isHomeScore||isDrawScore)&&(o<homeDecLo*(1-tol)||o>homeDecHi*(1+tol)))return false;
+    }
+    if(hasAwayRange){
+      const awayDecLo=awayOddsFrom+1, awayDecHi=awayOddsTo+1;
+      if((isAwayScore||isDrawScore)&&(o<awayDecLo*(1-tol)||o>awayDecHi*(1+tol)))return false;
+    }
+    // Also apply combined target range if derived
+    if(lo&&hi){return o>=lo*(1-tol)&&o<=hi*(1+tol);}
+    return true;
   }).map(s=>{
     const o=s.odds||s.poissonOdds;
-    // distance from nearest edge of range
-    const dist=o>=lo&&o<=hi?0:Math.min(Math.abs(o-lo),Math.abs(o-hi));
-    const diff=dist/((lo+hi)/2);
+    const dist=(lo&&hi)?(o>=lo&&o<=hi?0:Math.min(Math.abs(o-lo),Math.abs(o-hi))):0;
+    const diff=(lo&&hi)?dist/((lo+hi)/2):0;
     return{...s,usedOdds:o,diff};
-  }).sort((a,b)=>a.diff-b.diff);
+  }).sort((a,b)=>a.diff-b.diff).slice(0,10);
 
-  document.getElementById('s_calcOddsDisp').textContent=fmtOdds(calcOdds,sFmt);
-  document.getElementById('s_profitDisp').textContent='£'+profit.toFixed(2);
-  document.getElementById('s_impliedDisp').textContent=pct(1/calcOdds);
+  if(profit!==null){
+    document.getElementById('s_calcOddsDisp').textContent=fmtOdds(calcOdds,sFmt);
+    document.getElementById('s_profitDisp').textContent='£'+profit.toFixed(2);
+    document.getElementById('s_impliedDisp').textContent=pct(1/calcOdds);
+  }
 
   const venueNote=document.getElementById('s_venueNote');
   if(sVenue!=='home'){venueNote.style.display='block';venueNote.textContent='⚖️ '+VENUE_NOTES[sVenue];}
@@ -2750,7 +2815,8 @@ function runSingle(){
   if(!matches.length){document.getElementById('s_noResults').style.display='block';return;}
 
   const src=sExtractedOdds?'Bet365 screenshot':'Poisson model for '+home+' vs '+away;
-  document.getElementById('s_singleSub').textContent=`${matches.length} scoreline${matches.length>1?'s':''} matching target odds of ${fmtOdds(lo,sFmt)}${lo!==hi?' – '+fmtOdds(hi,sFmt):''}. Source: ${src}.`;
+  const rangeLabel=(lo&&hi)?('target '+fmtOdds((lo+hi)/2,sFmt)):(hasPerTeamRange?'per-team ranges':'all odds');
+  document.getElementById('s_singleSub').textContent=`${matches.length} scoreline${matches.length>1?'s':''} matching ${rangeLabel}. Source: ${src}.`;
 
   document.getElementById('s_singleList').innerHTML=matches.map((s,i)=>`
     <div class="score-result-item ${i===0?'best':''}">
@@ -2788,11 +2854,39 @@ function runDouble(){
   if(!home1||!away1||!home2||!away2){document.getElementById('d_err').textContent='Enter all four team names.';return;}
 
   const range=calcOddsRange('d_stake','d_return','d_estOdds','d_oddsRange','d_rangeLow','d_rangeHigh','d_rangeNote');
-  if(!range){document.getElementById('d_err').textContent='Enter stake and return.';return;}
+
+  // Per-team ranges for both games
+  const g1HomeFrom=parseFloat(document.getElementById('d_home1OddsFrom').value);
+  const g1HomeTo=parseFloat(document.getElementById('d_home1OddsTo').value);
+  const g1AwayFrom=parseFloat(document.getElementById('d_away1OddsFrom').value);
+  const g1AwayTo=parseFloat(document.getElementById('d_away1OddsTo').value);
+  const g2HomeFrom=parseFloat(document.getElementById('d_home2OddsFrom').value);
+  const g2HomeTo=parseFloat(document.getElementById('d_home2OddsTo').value);
+  const g2AwayFrom=parseFloat(document.getElementById('d_away2OddsFrom').value);
+  const g2AwayTo=parseFloat(document.getElementById('d_away2OddsTo').value);
+
+  const inRange=(odds,from,to,tol)=>{
+    if(isNaN(from)||isNaN(to)||from<=0)return true; // not set — allow all
+    const lo=from+1, hi=to+1;
+    return odds>=lo*(1-tol)&&odds<=hi*(1+tol);
+  };
+
+  let lo,hi,calcOdds,profit=null;
+  if(range){
+    ({lo,hi,calcOdds}=range);
+    const ret=parseFloat(document.getElementById('d_return').value);
+    const stake=parseFloat(document.getElementById('d_stake').value);
+    if(!isNaN(ret)&&!isNaN(stake))profit=ret-stake;
+  } else {
+    const estRaw=document.getElementById('d_estOdds').value.trim();
+    const estOdds=estRaw?parseOdds(estRaw):0;
+    if(estOdds>1){
+      const tol2=parseFloat(document.getElementById('d_tolerance').value);
+      lo=estOdds*(1-tol2);hi=estOdds*(1+tol2);calcOdds=estOdds;
+    }
+  }
 
   const tol=parseFloat(document.getElementById('d_tolerance').value);
-  const{lo,hi,calcOdds}=range;
-  const profit=parseFloat(document.getElementById('d_return').value)-parseFloat(document.getElementById('d_stake').value);
 
   const{lHome:lH1,lAway:lA1}=getMatchLambdas('d_homeAtk1','d_homeDef1','d_awayAtk1','d_awayDef1',dVenue1);
   const{lHome:lH2,lAway:lA2}=getMatchLambdas('d_homeAtk2','d_homeDef2','d_awayAtk2','d_awayDef2',dVenue2);
@@ -2800,32 +2894,40 @@ function runDouble(){
   const db1=buildOddsDB(dExtracted1,lH1,lA1);
   const db2=buildOddsDB(dExtracted2,lH2,lA2);
 
-  const searchLo=lo*(1-tol);
-  const searchHi=hi*(1+tol);
+  const searchLo=lo?lo*(1-tol):0;
+  const searchHi=hi?hi*(1+tol):99999;
 
   const combinations=[];
   db1.forEach(s1=>{
+    const o1=s1.odds||s1.poissonOdds;
+    // Apply game 1 per-team ranges
+    if(!inRange(o1,s1.h>s1.a?g1HomeFrom:g1AwayFrom,s1.h>s1.a?g1HomeTo:g1AwayTo,tol))return;
     db2.forEach(s2=>{
-      const o1=s1.odds||s1.poissonOdds;
       const o2=s2.odds||s2.poissonOdds;
+      // Apply game 2 per-team ranges
+      if(!inRange(o2,s2.h>s2.a?g2HomeFrom:g2AwayFrom,s2.h>s2.a?g2HomeTo:g2AwayTo,tol))return;
       const combined=o1*o2;
       if(combined>=searchLo&&combined<=searchHi){
-        const dist=combined>=lo&&combined<=hi?0:Math.min(Math.abs(combined-lo),Math.abs(combined-hi));
-        const diff=dist/((lo+hi)/2);
-        combinations.push({s1,s2,o1,o2,combined,diff});
+        const dist=(lo&&hi)?(combined>=lo&&combined<=hi?0:Math.min(Math.abs(combined-lo),Math.abs(combined-hi))):0;
+        const diff=(lo&&hi)?dist/((lo+hi)/2):0;
+        const combinedProb=(s1.prob||0)*(s2.prob||0);
+        combinations.push({s1,s2,o1,o2,combined,diff,combinedProb});
       }
     });
   });
-  combinations.sort((a,b)=>a.diff-b.diff);
+  combinations.sort((a,b)=>a.diff-b.diff||b.combinedProb-a.combinedProb);
   const top=combinations.slice(0,10);
 
-  document.getElementById('d_calcOddsDisp').textContent=fmtOdds(calcOdds,dFmt);
-  document.getElementById('d_profitDisp').textContent='£'+profit.toFixed(2);
-  document.getElementById('d_impliedDisp').textContent=pct(1/calcOdds);
+  if(profit!==null){
+    document.getElementById('d_calcOddsDisp').textContent=fmtOdds(calcOdds,dFmt);
+    document.getElementById('d_profitDisp').textContent='£'+profit.toFixed(2);
+    document.getElementById('d_impliedDisp').textContent=pct(1/calcOdds);
+  }
 
   if(!top.length){document.getElementById('d_noResults').style.display='block';return;}
 
-  document.getElementById('d_doubleSub').textContent=`Top ${top.length} scoreline combination${top.length>1?'s':''} matching target odds of ${fmtOdds(lo,dFmt)}${lo!==hi?' – '+fmtOdds(hi,dFmt):''}.`;
+  const rangeLabel=(lo&&hi)?('target '+fmtOdds((lo+hi)/2,dFmt)):'per-team ranges';
+  document.getElementById('d_doubleSub').textContent=`Top ${top.length} scoreline combination${top.length>1?'s':''} matching ${rangeLabel}.`;
 
   document.getElementById('d_doubleList').innerHTML=top.map((c,i)=>`
     <div class="double-item ${i===0?'best':''}">
