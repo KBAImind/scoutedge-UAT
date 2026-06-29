@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2379,7 +2379,7 @@ async function renderAccuracyTracker(){
   const logEl=document.getElementById('accuracyLog');
   if(logEl){
     if(!entries.length){logEl.innerHTML='<div style="font-size:11px;color:var(--dim);text-align:center;padding:12px">No results logged yet. After a game finishes, log the predicted and actual score above.</div>';return;}
-    logEl.innerHTML=entries.map(e=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px"><span style="color:var(--dim);min-width:45px">'+e.date+'</span><span style="flex:1;padding:0 6px;color:var(--text)">'+e.match+'</span><span style="color:var(--muted);min-width:35px">'+e.pred+'</span><span style="color:var(--dim);padding:0 4px">\u2192</span><span style="color:var(--text);min-width:35px">'+e.actual+'</span><span style="margin-left:6px">'+(e.exactHit?'\u2705':'\u274c')+'</span><span style="margin-left:4px">'+(e.resultHit?'\U0001f7e2':'\U0001f534')+'</span></div>').join('');
+    logEl.innerHTML=entries.map(e=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px"><span style="color:var(--dim);min-width:45px">'+e.date+'</span><span style="flex:1;padding:0 6px;color:var(--text)">'+e.match+'</span><span style="color:var(--muted);min-width:35px">'+e.pred+'</span><span style="color:var(--dim);padding:0 4px">\u2192</span><span style="color:var(--text);min-width:35px">'+e.actual+'</span><span style="margin-left:6px">'+(e.exactHit?'\u2705':'\u274c')+'</span><span style="margin-left:4px">'+(e.resultHit?'🟢':'🔴')+'</span></div>').join('');
   }
 }
 
