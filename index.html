@@ -925,7 +925,7 @@ async function afFetch(ep,retryCount=0){
         return afFetch(ep,retryCount+1);
       }
       if(retryCount<3){
-        const backoff=[15000,30000,60000][retryCount-1];
+        const backoff=[5000,10000,20000][retryCount-1];
         await cancellableSleep(backoff);
         SE_LAST_CALL=Date.now();
         return afFetch(ep,retryCount+1);
@@ -938,7 +938,7 @@ async function afFetch(ep,retryCount=0){
       const errStr=JSON.stringify(d.errors);
       // JSON-level rate limit errors — same backoff
       if(retryCount<3&&/rate|too many requests/i.test(errStr)){
-        const backoff=[15000,30000,60000][retryCount];
+        const backoff=[5000,10000,20000][retryCount];
         await cancellableSleep(backoff);
         SE_LAST_CALL=Date.now();
         return afFetch(ep,retryCount+1);
@@ -1460,9 +1460,8 @@ async function fetchDailyTips(){
     leagueSummary.sort((a,b)=>b.tier-a.tier);
     window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
 
-    // Process up to 15 fixtures with a cap of 5 international fixtures.
-    // Each international fixture (WC etc) makes up to 16 API calls vs 3-5
-    // for club fixtures — without the cap, 8 WC games alone take 10+ minutes.
+    // Maximum Accuracy mode scans more fixtures to find qualifying games
+    const scanLimit=cf==='max'?20:15;
     const MAX_INTL_IN_SCAN=5;
     let intlSeen=0;
     const toProcess=allFixtures.filter(f=>{
@@ -1471,7 +1470,7 @@ async function fetchDailyTips(){
         intlSeen++;
       }
       return true;
-    }).slice(0,15);
+    }).slice(0,scanLimit);
 
     // Warn if the majority of processable fixtures are from low-tier/unknown leagues
     const unknownInTop=toProcess.filter(f=>leagueTier(f.league.id)<=10).length;
@@ -1874,7 +1873,7 @@ async function fetchDailyTips(){
     let filtered=predictions;
     if(cf==='max')filtered=predictions.filter(p=>{
       const totalXG=p.lHome+p.lAway;
-      return totalXG<2.5&&(p.dominanceRatio||1)>1.3;
+      return totalXG<2.5&&(p.dominanceRatio||1)>1.2;
     });
     else if(cf==='high')filtered=predictions.filter(p=>p.confidence>0.45);
     else if(cf==='med')filtered=predictions.filter(p=>p.confidence>0.28);
