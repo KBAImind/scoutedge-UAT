@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2333,13 +2333,21 @@ async function saveAccuracyEntry(entry){
 }
 
 async function saveAllAccuracyEntries(entries){
+  // Single atomic PUT — replaces the old delete-then-rebuild pattern that
+  // made 1 DELETE + N sequential POST calls and could wipe all data if any
+  // call in that loop failed partway through.
   try{
-    await fetch(ACCURACY_URL,{method:'DELETE'});
-    for(const e of [...entries].reverse()){
-      await fetch(ACCURACY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(e)});
-    }
-  }catch(e){}
+    const r=await fetch(ACCURACY_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({entries})});
+    if(!r.ok)throw new Error('status '+r.status);
+  }catch(e){
+    // If the PUT fails entirely, do NOT touch localStorage either —
+    // better to leave old data in place than risk wiping it on a failed write
+    console.warn('Failed to save accuracy entries to KV:',e.message);
+    try{localStorage.setItem('se_accuracy',JSON.stringify(entries));}catch(e2){}
+    return false;
+  }
   try{localStorage.setItem('se_accuracy',JSON.stringify(entries));}catch(e){}
+  return true;
 }
 
 async function deleteAccuracyEntries(){
@@ -2460,13 +2468,20 @@ async function clearAccuracyLog(){
 
 async function renderAccuracyTracker(){
   if(!accEntries.length)accEntries=await fetchAccuracyEntries();
-  // Backfill IDs for entries logged before the id field existed
-  let needsResave=false;
-  accEntries=accEntries.map(e=>{
-    if(!e.id){needsResave=true;return{...e,id:(e.ts||Date.now()).toString()};}
-    return e;
-  });
-  if(needsResave)await saveAllAccuracyEntries(accEntries);
+  // Backfill IDs for entries logged before the id field existed.
+  // Only resave if the fetch actually returned data — never resave an
+  // empty array over existing KV data on a failed/partial fetch.
+  if(accEntries.length>0){
+    let needsResave=false;
+    const backfilled=accEntries.map(e=>{
+      if(!e.id){needsResave=true;return{...e,id:(e.ts||Date.now()).toString()};}
+      return e;
+    });
+    if(needsResave){
+      const ok=await saveAllAccuracyEntries(backfilled);
+      if(ok)accEntries=backfilled;
+    }
+  }
 
   const filtered=accCurrentTab==='all'?accEntries:accEntries.filter(e=>e.conf===accCurrentTab);
 
