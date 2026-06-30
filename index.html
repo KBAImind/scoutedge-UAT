@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -297,6 +297,25 @@ th{color:var(--muted);font-weight:700}
       <button onclick="toggleAccuracyPanel()" id="accuracyToggleBtn" style="font-size:10px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">Hide</button>
     </div>
     <div id="accuracyContent">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10px;color:var(--dim);margin-bottom:4px">Date range</div>
+        <select id="accuracyDateRange" onchange="onDateRangeChange()" style="width:100%;font-size:12px;padding:7px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+          <option value="all" selected>All time</option>
+          <option value="24h">Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+          <option value="custom">Custom range…</option>
+        </select>
+        <div id="accuracyCustomRange" style="display:none;margin-top:6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="date" id="accuracyRangeFrom" onchange="renderAccuracyTracker()" style="flex:1;font-size:11px;padding:5px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+            <span style="font-size:11px;color:var(--dim)">to</span>
+            <input type="date" id="accuracyRangeTo" onchange="renderAccuracyTracker()" style="flex:1;font-size:11px;padding:5px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text)">
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">Up to 90 days at once</div>
+        </div>
+      </div>
       <div id="accuracyTabs" style="display:flex;gap:4px;margin-bottom:12px;background:var(--bg2);border-radius:6px;padding:3px">
         <button class="acc-tab acc-tab-active" onclick="setAccuracyTab('all')" id="accTab-all" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg3);color:var(--text)">All</button>
         <button class="acc-tab" onclick="setAccuracyTab('max')" id="accTab-max" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--dim)">Max Accuracy</button>
@@ -2363,6 +2382,47 @@ function toggleAccuracyPanel(){
   btn.textContent=hidden?'Hide':'Show';
 }
 
+function onDateRangeChange(){
+  const val=document.getElementById('accuracyDateRange').value;
+  const customBox=document.getElementById('accuracyCustomRange');
+  customBox.style.display=val==='custom'?'flex':'none';
+  if(val==='custom'){
+    const fromEl=document.getElementById('accuracyRangeFrom');
+    const toEl=document.getElementById('accuracyRangeTo');
+    if(!toEl.value)toEl.value=new Date().toISOString().slice(0,10);
+    if(!fromEl.value){
+      const d=new Date();d.setDate(d.getDate()-30);
+      fromEl.value=d.toISOString().slice(0,10);
+    }
+  }
+  renderAccuracyTracker();
+}
+
+function getDateRangeBounds(){
+  const val=document.getElementById('accuracyDateRange')?.value||'all';
+  const now=new Date();
+  if(val==='all')return null;
+  if(val==='24h'){const from=new Date(now.getTime()-86400000);return{from,to:now};}
+  if(val==='7d'){const from=new Date(now.getTime()-7*86400000);return{from,to:now};}
+  if(val==='30d'){const from=new Date(now.getTime()-30*86400000);return{from,to:now};}
+  if(val==='90d'){const from=new Date(now.getTime()-90*86400000);return{from,to:now};}
+  if(val==='custom'){
+    const fromVal=document.getElementById('accuracyRangeFrom')?.value;
+    const toVal=document.getElementById('accuracyRangeTo')?.value;
+    if(!fromVal||!toVal)return null;
+    const from=new Date(fromVal);
+    const to=new Date(toVal);
+    to.setHours(23,59,59,999);
+    const spanDays=(to-from)/86400000;
+    if(spanDays>90){
+      const cappedFrom=new Date(to.getTime()-90*86400000);
+      return{from:cappedFrom,to};
+    }
+    return{from,to};
+  }
+  return null;
+}
+
 function setAccuracyTab(tab){
   accCurrentTab=tab;
   ['all','max','high','med'].forEach(t=>{
@@ -2404,7 +2464,8 @@ async function logAccuracyResult(){
   const actualScore=parseScore(actual);
   if(!predScore||!actualScore){alert('Scores must be in format e.g. 1-0');return;}
   const dateVal=document.getElementById('accuracyDateInput').value;
-  const dateStr=dateVal?new Date(dateVal).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const dateISO=dateVal||new Date().toISOString().slice(0,10);
+  const dateStr=new Date(dateISO).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   const exactHit=predScore.h===actualScore.h&&predScore.a===actualScore.a;
   const predResult=getResult(predScore.h,predScore.a);
   const actualResult=getResult(actualScore.h,actualScore.a);
@@ -2413,7 +2474,7 @@ async function logAccuracyResult(){
   const conf=document.getElementById('accuracyConfInput').value;
   const prob=document.getElementById('accuracyProbInput').value.trim();
   const pick=document.getElementById('accuracyPickInput').value;
-  const entry={id:Date.now().toString(),date:dateStr,match,pred,actual,exactHit,resultHit,goalDiff,conf,prob,pick,ts:Date.now()};
+  const entry={id:Date.now().toString(),date:dateStr,dateISO,match,pred,actual,exactHit,resultHit,goalDiff,conf,prob,pick,ts:Date.now()};
   const btn=document.getElementById('accLogBtn');
   if(btn){btn.textContent='Saving\u2026';btn.disabled=true;}
   await saveAccuracyEntry(entry);
@@ -2468,14 +2529,21 @@ async function clearAccuracyLog(){
 
 async function renderAccuracyTracker(){
   if(!accEntries.length)accEntries=await fetchAccuracyEntries();
-  // Backfill IDs for entries logged before the id field existed.
+  // Backfill IDs and dateISO for entries logged before those fields existed.
   // Only resave if the fetch actually returned data — never resave an
   // empty array over existing KV data on a failed/partial fetch.
   if(accEntries.length>0){
     let needsResave=false;
     const backfilled=accEntries.map(e=>{
-      if(!e.id){needsResave=true;return{...e,id:(e.ts||Date.now()).toString()};}
-      return e;
+      let updated=e;
+      if(!e.id){needsResave=true;updated={...updated,id:(e.ts||Date.now()).toString()};}
+      if(!e.dateISO){
+        needsResave=true;
+        // Best-effort recovery from ts, else fall back to today
+        const recovered=e.ts?new Date(e.ts).toISOString().slice(0,10):new Date().toISOString().slice(0,10);
+        updated={...updated,dateISO:recovered};
+      }
+      return updated;
     });
     if(needsResave){
       const ok=await saveAllAccuracyEntries(backfilled);
@@ -2483,7 +2551,20 @@ async function renderAccuracyTracker(){
     }
   }
 
-  const filtered=accCurrentTab==='all'?accEntries:accEntries.filter(e=>e.conf===accCurrentTab);
+  // Sort by actual game date (newest first), not by when it was logged
+  accEntries=[...accEntries].sort((a,b)=>(b.dateISO||'').localeCompare(a.dateISO||''));
+
+  let filtered=accCurrentTab==='all'?accEntries:accEntries.filter(e=>e.conf===accCurrentTab);
+
+  // Apply date range filter
+  const bounds=getDateRangeBounds();
+  if(bounds){
+    filtered=filtered.filter(e=>{
+      if(!e.dateISO)return false;
+      const d=new Date(e.dateISO);
+      return d>=bounds.from&&d<=bounds.to;
+    });
+  }
 
   // Update tab labels with counts
   const tabCounts={all:accEntries.length,max:accEntries.filter(e=>e.conf==='max').length,high:accEntries.filter(e=>e.conf==='high').length,med:accEntries.filter(e=>e.conf==='med').length};
