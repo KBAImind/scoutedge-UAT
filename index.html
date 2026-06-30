@@ -2460,6 +2460,13 @@ async function clearAccuracyLog(){
 
 async function renderAccuracyTracker(){
   if(!accEntries.length)accEntries=await fetchAccuracyEntries();
+  // Backfill IDs for entries logged before the id field existed
+  let needsResave=false;
+  accEntries=accEntries.map(e=>{
+    if(!e.id){needsResave=true;return{...e,id:(e.ts||Date.now()).toString()};}
+    return e;
+  });
+  if(needsResave)await saveAllAccuracyEntries(accEntries);
 
   const filtered=accCurrentTab==='all'?accEntries:accEntries.filter(e=>e.conf===accCurrentTab);
 
