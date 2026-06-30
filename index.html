@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2528,7 +2528,7 @@ async function renderAccuracyTracker(){
 
   const rows=filtered.map(e=>{
     const exact=e.exactHit?'\u2705':'\u274c';
-    const result=e.resultHit?'\U0001f7e2':'\U0001f534';
+    const result=e.resultHit?'🟢':'🔴';
     if(accEditId===e.id){
       return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
         +'<span style="font-size:10px;color:var(--dim)">'+e.date+'</span>'
