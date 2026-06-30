@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2500,6 +2500,7 @@ function startEditEntry(id){
 }
 
 async function saveEditEntry(id){
+  const dateEl=document.getElementById('edit-date-'+id);
   const matchEl=document.getElementById('edit-match-'+id);
   const predEl=document.getElementById('edit-pred-'+id);
   const actualEl=document.getElementById('edit-actual-'+id);
@@ -2512,7 +2513,19 @@ async function saveEditEntry(id){
   const exactHit=predScore.h===actualScore.h&&predScore.a===actualScore.a;
   const resultHit=getResult(predScore.h,predScore.a)===getResult(actualScore.h,actualScore.a);
   const goalDiff=Math.abs(predScore.h-actualScore.h)+Math.abs(predScore.a-actualScore.a);
-  accEntries=accEntries.map(e=>e.id===id?{...e,match:matchEl.value.trim(),pred:predEl.value.trim(),actual:actualEl.value.trim(),prob:probEl?probEl.value.trim():e.prob,pick:pickEl?pickEl.value:e.pick,exactHit,resultHit,goalDiff}:e);
+  const newDateISO=dateEl&&dateEl.value?dateEl.value:null;
+  const newDateStr=newDateISO?new Date(newDateISO).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):null;
+  accEntries=accEntries.map(e=>e.id===id?{
+    ...e,
+    match:matchEl.value.trim(),
+    pred:predEl.value.trim(),
+    actual:actualEl.value.trim(),
+    prob:probEl?probEl.value.trim():e.prob,
+    pick:pickEl?pickEl.value:e.pick,
+    dateISO:newDateISO||e.dateISO,
+    date:newDateStr||e.date,
+    exactHit,resultHit,goalDiff
+  }:e);
   accEditId=null;
   await saveAllAccuracyEntries(accEntries);
   renderAccuracyTracker();
@@ -2612,7 +2625,7 @@ async function renderAccuracyTracker(){
     const result=e.resultHit?'🟢':'🔴';
     if(accEditId===e.id){
       return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
-        +'<span style="font-size:10px;color:var(--dim)">'+e.date+'</span>'
+        +'<input type="date" id="edit-date-'+e.id+'" value="'+(e.dateISO||'')+'" style="font-size:9px;padding:2px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
         +'<input id="edit-match-'+e.id+'" value="'+e.match.replace(/"/g,'&quot;')+'" style="font-size:11px;padding:3px 5px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
         +'<span>'+confLabel(e.conf)+'</span>'
         +'<div style="display:flex;gap:3px"><input id="edit-pred-'+e.id+'" value="'+e.pred+'" style="width:45px;font-size:11px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text)"><input id="edit-prob-'+e.id+'" value="'+(e.prob||'')+'" placeholder="%" style="width:38px;font-size:10px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim)"></div>'
