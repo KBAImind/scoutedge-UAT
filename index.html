@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -901,7 +901,107 @@ function cancelDailyTips(){
 
 // Custom error used to unwind out of the scan cleanly when cancelled
 class SECancelled extends Error{constructor(){super('Cancelled by user');this.name='SECancelled';}}
-const AF_LEAGUES={all:[39,140,135,78,61,94,88,40,41,42,43,71,307,253,1,2,3,848,119,292,169,197,203,207,262,210,144,235,218,233,17],major:[39,140,135,78,61,1,2,88,94,71,307,253],europe:[39,140,135,78,61,94,88,40,41,42,43,1,2,3,848,119,292,197,203,207,233,218,235]};
+const AF_LEAGUES={
+  all:[39,140,135,78,61,94,88,40,41,42,43,71,307,253,1,2,3,848,119,292,169,197,203,207,262,210,144,235,218,233,17],
+  major:[39,140,135,78,61,1,2,88,94,71,307,253],
+  europe:[39,140,135,78,61,94,88,40,41,42,43,1,2,3,848,119,292,197,203,207,233,218,235],
+  // Leagues confirmed to offer correct score markets on Bet365 UK.
+  // Covers major international tournaments, top European leagues, and
+  // well-established domestic leagues with sufficient betting volume.
+  // Excludes low-tier leagues (Syria, Tanzania, Lebanon etc) where
+  // correct score markets are typically unavailable on UK bookmakers.
+  bet365:[
+    // ── INTERNATIONAL ──────────────────────────────────────────────────────
+    1,    // FIFA World Cup
+    17,   // WC Qualification (UEFA)
+    2,    // UEFA Champions League
+    3,    // UEFA Europa League
+    848,  // UEFA Conference League
+    960,  // AFC Champions League
+    961,  // AFC Champions League 2
+    529,  // UEFA Nations League
+    4,    // Euro Championship
+    9,    // Copa America
+    6,    // Africa Cup of Nations
+    // ── ENGLAND ────────────────────────────────────────────────────────────
+    39,   // Premier League
+    40,   // Championship
+    41,   // League One
+    42,   // League Two
+    43,   // National League
+    45,   // FA Cup
+    48,   // League Cup
+    // ── SPAIN ──────────────────────────────────────────────────────────────
+    140,  // La Liga
+    141,  // La Liga 2
+    // ── GERMANY ────────────────────────────────────────────────────────────
+    78,   // Bundesliga
+    79,   // 2. Bundesliga
+    // ── ITALY ──────────────────────────────────────────────────────────────
+    135,  // Serie A
+    136,  // Serie B
+    // ── FRANCE ─────────────────────────────────────────────────────────────
+    61,   // Ligue 1
+    62,   // Ligue 2
+    // ── PORTUGAL ───────────────────────────────────────────────────────────
+    94,   // Primeira Liga
+    95,   // Liga Portugal 2
+    // ── NETHERLANDS ────────────────────────────────────────────────────────
+    88,   // Eredivisie
+    89,   // Eerste Divisie
+    // ── SCOTLAND ───────────────────────────────────────────────────────────
+    179,  // Scottish Premiership
+    180,  // Scottish Championship
+    // ── TURKEY ─────────────────────────────────────────────────────────────
+    203,  // Süper Lig
+    // ── BELGIUM ────────────────────────────────────────────────────────────
+    144,  // Belgian Pro League
+    // ── RUSSIA ─────────────────────────────────────────────────────────────
+    235,  // Russian Premier League
+    // ── GREECE ─────────────────────────────────────────────────────────────
+    197,  // Super League
+    // ── CZECH REPUBLIC ─────────────────────────────────────────────────────
+    345,  // Czech Liga
+    // ── POLAND ─────────────────────────────────────────────────────────────
+    106,  // Ekstraklasa
+    // ── AUSTRIA ────────────────────────────────────────────────────────────
+    218,  // Bundesliga
+    // ── SWITZERLAND ────────────────────────────────────────────────────────
+    207,  // Super League
+    // ── DENMARK ────────────────────────────────────────────────────────────
+    119,  // Superliga — also covers J1 League ID, separate below
+    271,  // Superliga (Denmark correct ID)
+    // ── NORWAY ─────────────────────────────────────────────────────────────
+    103,  // Eliteserien
+    // ── SWEDEN ─────────────────────────────────────────────────────────────
+    113,  // Allsvenskan
+    // ── BRAZIL ─────────────────────────────────────────────────────────────
+    71,   // Série A
+    72,   // Série B
+    // ── ARGENTINA ──────────────────────────────────────────────────────────
+    128,  // Liga Profesional
+    // ── MEXICO ─────────────────────────────────────────────────────────────
+    262,  // Liga MX
+    // ── USA ────────────────────────────────────────────────────────────────
+    253,  // MLS
+    // ── SAUDI ARABIA ───────────────────────────────────────────────────────
+    307,  // Saudi Pro League
+    // ── JAPAN ──────────────────────────────────────────────────────────────
+    98,   // J1 League
+    // ── SOUTH KOREA ────────────────────────────────────────────────────────
+    292,  // K League 1
+    // ── CHINA ──────────────────────────────────────────────────────────────
+    169,  // Chinese Super League
+    // ── ROMANIA ────────────────────────────────────────────────────────────
+    283,  // Liga 1
+    // ── UKRAINE ────────────────────────────────────────────────────────────
+    333,  // Premier League
+    // ── CROATIA ────────────────────────────────────────────────────────────
+    210,  // HNL
+    // ── SERBIA ─────────────────────────────────────────────────────────────
+    286,  // Super Liga
+  ],
+};
 
 function updateTipsUI(){document.getElementById('tipsApiHint').style.display=KEYS.af?'none':'block';document.getElementById('tipsFetchBtn').disabled=!KEYS.af;}
 function setProgress(title,text,p){document.getElementById('tipsProgress').style.display='block';document.getElementById('tipsProgressTitle').textContent=title;document.getElementById('tipsProgressText').textContent=text;document.getElementById('tipsProgressBar').style.width=p+'%';}
@@ -1460,7 +1560,11 @@ async function fetchDailyTips(){
     setProgress('Step 1 of 4 — Fetching fixtures','Scanning all leagues for upcoming matches…',8);
     const allFixturesRaw=[...(fdToday.response||[]),...(fdTomorrow.response||[])];
 
+    // bet365 league set is the permanent baseline — only bettable leagues ever shown
+    const bet365Set=new Set(AF_LEAGUES.bet365);
+
     let allFixtures=allFixturesRaw
+      .filter(f=>bet365Set.has(f.league.id))
       .filter(f=>lf==='all'||leagueIds.includes(f.league.id))
       .filter(f=>!BLOCKED_LEAGUES.has(f.league.id))
       .filter(f=>{
