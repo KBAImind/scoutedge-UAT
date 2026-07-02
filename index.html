@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -268,7 +268,7 @@ th{color:var(--muted);font-weight:700}
     <p class="section-sub">AI scans every league worldwide, runs Poisson on live team stats, factors in injuries and venue type, then ranks the 10 most confident scoreline predictions for today.</p>
     <div class="grid2" style="margin-bottom:12px">
       <div><label>League Filter</label><select id="tipsLeagueFilter"><option value="all">All Leagues Worldwide</option><option value="major">Top Leagues Only</option><option value="europe">European Leagues</option></select></div>
-      <div><label>Confidence Level</label><select id="tipsConfidence"><option value="any">Show All</option><option value="med" selected>Medium+</option><option value="high">High Only</option><option value="max">Maximum Accuracy (fewer tips, higher hit rate)</option></select></div>
+      <div><label>Confidence Level</label><select id="tipsConfidence"><option value="any">Show All</option><option value="med" selected>Medium</option><option value="high">High Only</option><option value="max">Maximum Accuracy (fewer tips, higher hit rate)</option></select></div>
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" id="tipsFetchBtn" onclick="fetchDailyTips()">🔥 Generate Today's Tips</button>
@@ -2141,7 +2141,7 @@ async function fetchDailyTips(){
     }
 
     setProgress('Step 4 of 4 — Running Poisson models','Calculating scoreline probabilities…',85);
-    const predictions=matchData.map(md=>buildTipPrediction(md,injuryMap)).filter(Boolean);
+    let predictions=matchData.map(md=>buildTipPrediction(md,injuryMap)).filter(Boolean);
 
     // PRIMARY sort: confidence score (highest first) — league tier is tiebreaker only
     predictions.sort((a,b)=>{
@@ -2150,26 +2150,31 @@ async function fetchDailyTips(){
       return b.tier-a.tier;                  // near-identical confidence — use tier as tiebreaker
     });
 
-    // Apply confidence filter
-    // Maximum Accuracy mode: only show games where total xG < 2.5 AND dominance > 1.3x
-    // Simulation shows these games hit at ~38% vs ~11% for all games
-    // Fewer tips but dramatically higher scoreline hit rate
-    let filtered=predictions;
-    if(cf==='max')filtered=predictions.filter(p=>{
+    // ── CONFIDENCE TIER ASSIGNMENT — mutually exclusive ─────────────────────
+    // Previously max/high/med were independent bars a fixture could clear
+    // simultaneously (e.g. a strong low-scoring game with 60% confidence
+    // passed the Max Accuracy bar, the High Only bar, AND the Medium bar
+    // all at once — so the same fixture appeared under all three filters
+    // with a different label each time). Each prediction now gets assigned
+    // to exactly ONE tier, checked in priority order (max first, since it's
+    // the most exclusive/desirable), so a fixture can only ever belong to
+    // one bucket regardless of which filter you run.
+    predictions=predictions.map(p=>{
       const totalXG=p.lHome+p.lAway;
-      return totalXG<2.5&&(p.dominanceRatio||1)>1.2;
+      const isMax=totalXG<2.5&&(p.dominanceRatio||1)>1.2;
+      const isHigh=p.confidence>0.45;
+      const isMed=p.confidence>0.28;
+      const confTier=isMax?'max':isHigh?'high':isMed?'med':'low';
+      return{...p,confTier};
     });
-    else if(cf==='high')filtered=predictions.filter(p=>p.confidence>0.45);
-    else if(cf==='med')filtered=predictions.filter(p=>p.confidence>0.28);
 
-    // Tag each prediction with the filter mode that actually qualified it,
-    // so the badge on each tip card reflects the scan you ran rather than
-    // being re-derived from the raw confidence score. Previously the badge
-    // used the same >0.45 threshold as "High Only" AND as the "Max Accuracy"
-    // label cutoff, so every High Only result displayed as "Max Accuracy" —
-    // and Max Accuracy results (which qualify on xG/dominance, not the score)
-    // could show as "High" or "Medium" depending on where their score fell.
-    filtered=filtered.map(p=>({...p,qualifiedVia:cf}));
+    // Apply confidence filter — each mode now shows ONLY fixtures assigned
+    // to that exact tier, not "this tier or better". "any" (Show All) shows
+    // everything including the 'low' tier that doesn't qualify for a badge.
+    let filtered=predictions;
+    if(cf==='max')filtered=predictions.filter(p=>p.confTier==='max');
+    else if(cf==='high')filtered=predictions.filter(p=>p.confTier==='high');
+    else if(cf==='med')filtered=predictions.filter(p=>p.confTier==='med');
 
     // Soft deduplicate — cap same scoreline at 3 appearances
     const scoreCount={};
@@ -2190,9 +2195,9 @@ async function fetchDailyTips(){
       if(cf==='max'&&filtered===0&&predictions.length===0){
         msg='No fixtures passed the Maximum Accuracy filter today (requires total xG < 2.5 and strong dominance ratio). '
           +(noStats>0?noStats+' fixture'+(noStats>1?'s':'')+' had no API stats. ':'')
-          +'Try switching to High Only or Medium+ to see more results.';
+          +'Try switching to High Only or Medium to see more results.';
       } else if(filtered>0&&noStats===0){
-        msg='Found '+filtered+' fixture'+(filtered>1?'s':'')+' with stats but all were filtered out by your confidence setting ('+(cf==='max'?'Maximum Accuracy':cf==='high'?'High Only':'Medium+')+').'
+        msg='Found '+filtered+' fixture'+(filtered>1?'s':'')+' with stats but all were filtered out by your confidence setting ('+(cf==='max'?'Maximum Accuracy':cf==='high'?'High Only':'Medium')+').'
           +' Try a lower confidence level or check back when more fixtures are scheduled.';
       } else {
         msg='Processed '+toProcess.length+' fixture'+(toProcess.length>1?'s':'')+'. '
@@ -2555,13 +2560,12 @@ function renderTips(tips,date,totalFound,eligibleCount){
     const koTime=koDate?koDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'TBD';
     const koDay=koDate?koDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'';
     const koDisplay=koDate?(koDay+' · '+koTime):'TBD';
-    // Confidence level badge — reflects the filter mode that actually
-    // qualified this result (t.qualifiedVia, set during filtering), not a
-    // re-derived guess from the raw confidence score. In "Show All" mode
-    // there's no single filter to attribute, so it falls back to a
-    // score-based label there only.
-    const modeLabels={max:'Max Accuracy',high:'High Confidence',med:'Medium+'};
-    const confLevel=modeLabels[t.qualifiedVia]||(t.confidence>0.45?'Max Accuracy':t.confidence>0.28?'High Confidence':'Medium');
+    // Confidence level badge — reflects this fixture's own assigned tier
+    // (confTier, computed once during filtering as a mutually exclusive
+    // bucket: max > high > med > low). Correct regardless of which scan
+    // mode you ran, since it's intrinsic to the fixture, not re-derived.
+    const modeLabels={max:'Max Accuracy',high:'High Confidence',med:'Medium'};
+    const confLevel=modeLabels[t.confTier]||'Medium';
     const confBadgeCol=confLevel==='Max Accuracy'?'#00cfff':confLevel.startsWith('High')?'#0c6':'#fa0';
     const confBadgeBg=confLevel==='Max Accuracy'?'rgba(0,207,255,0.12)':confLevel.startsWith('High')?'rgba(0,200,100,0.12)':'rgba(255,170,0,0.12)';
     const confBadge='<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:'+confBadgeBg+';color:'+confBadgeCol+'">'+confLevel+'</span>';
