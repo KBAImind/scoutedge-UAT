@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -288,7 +288,10 @@ th{color:var(--muted);font-weight:700}
   </div>
   <div id="tipsErr" class="err" style="margin-bottom:12px"></div>
   <div id="tipsDebugPanel" style="display:none" class="card">
-    <div class="card-title">🔧 Debug — Raw API Response (First Match Attempted)</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="card-title" style="margin:0">🔧 Debug — Raw API Response (First Match Attempted)</div>
+      <button onclick="copyDebugLog()" id="copyDebugBtn" style="font-size:11px;padding:5px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer;white-space:nowrap">📋 Copy log</button>
+    </div>
     <div id="tipsDebugContent" style="font-size:10px;color:#aaccdd;white-space:pre-wrap;line-height:1.5;max-height:400px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:monospace"></div>
   </div>
   <div id="accuracyPanel" class="card" style="margin-bottom:16px">
@@ -1487,6 +1490,9 @@ const LEAGUE_TIERS={
   372:48,   // Premier League
   // ── KENYA ──────────────────────────────────────────────────────────────────
   484:42,   // Premier League
+  // ── BHUTAN ─────────────────────────────────────────────────────────────────
+  1031:22,  // Premier League — confirmed bettable per user's Bet365 sheet,
+            // low tier reflects genuinely thin data coverage for this country
   // ── ETHIOPIA ───────────────────────────────────────────────────────────────
   594:38,   // Ethiopian Premier League
   // ── TANZANIA ───────────────────────────────────────────────────────────────
@@ -1597,6 +1603,31 @@ function extractGoalAvg(statsObj,side,context){
     if(tot!=null&&parseFloat(played)>0)return parseFloat(tot)/parseFloat(played);
   }
   return null;
+}
+
+async function copyDebugLog(){
+  const text=document.getElementById('tipsDebugContent').textContent;
+  const btn=document.getElementById('copyDebugBtn');
+  if(!text){return;}
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    // Fallback for browsers/contexts where Clipboard API is blocked
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{document.execCommand('copy');}catch(e2){}
+    document.body.removeChild(ta);
+  }
+  if(btn){
+    const original=btn.textContent;
+    btn.textContent='✓ Copied';
+    btn.style.color='var(--green)';
+    setTimeout(()=>{btn.textContent=original;btn.style.color='var(--dim)';},2000);
+  }
 }
 
 function renderDebugPanel(){
