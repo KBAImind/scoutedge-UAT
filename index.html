@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1001,35 +1001,69 @@ const AF_LEAGUES={
     // ── SERBIA ─────────────────────────────────────────────────────────────
     286,  // Super Liga
     // ── ADDED FROM USER'S BET365 SCREENSHOT LIST (see conversation) ─────────
-    // Only IDs already confirmed elsewhere in this file (LEAGUE_TIERS or
-    // prior live debug data) are added here — unconfirmed leagues from the
-    // sheet are listed in a comment below rather than guessed into the code.
     357,  // Republic of Ireland Premier Division
     114,  // Sweden Superettan (2nd tier — confirmed bettable per sheet)
     244,  // Finland Veikkausliiga
     390,  // Lebanon League
-    268,  // Morocco GNF1 / Botola
-    254,  // USA USL Championship
-    255,  // USA USL League One
-    256,  // USA USL League Two — was previously blocked for thin data;
-          // unblocked below since the user's sheet confirms it's bettable
+    200,  // Morocco Botola Pro — CORRECTED: live debug confirmed 200 is the
+          // real ID (name="Botola Pro"), not 268 as previously guessed.
+          // 268 kept in LEAGUE_TIERS as an unconfirmed backup, not added here.
+    254,  // USA USL — label unconfirmed, see note below
+    255,  // USA USL Championship — CORRECTED: live debug confirmed 255 is
+          // "USL Championship", not "League One" as previously mislabeled
+    256,  // USA USL League Two — unblocked, confirmed bettable per sheet
+    // ── CONFIRMED VIA LIVE LEAGUE INSPECTOR SCAN (2nd debug session) ────────
+    358,  // Republic of Ireland First Division
+    361,  // Lithuania 1 Lyga
+    329,  // Estonia Meistriliiga
+    328,  // Estonia Esiliiga A (sheet: "Esliiga")
+    657,  // Estonia Cup — cup competition, data will be noisier than league play
+    1087, // Finland Ykkösliiga
+    247,  // Finland Kakkonen Group A
+    248,  // Finland Kakkonen Group B — sheet says "Ykkonen Group B", naming
+          // doesn't exactly match; included as probable match, flag if wrong
+    242,  // Ecuador LigaPro Serie A
+    243,  // Ecuador LigaPro Serie B
+    493,  // European U19 Championship (matches sheet's "Internationals" entry)
+    1103, // Northern Ireland Championship Women
+    // ── AUSTRALIAN STATE LEAGUES — unblocked from BLOCKED_LEAGUES below,
+    // confirmed against sheet's Australia column + live debug data.
+    // "NPL" and "Premier League" are used interchangeably in Australian
+    // state football, so some of these are probable rather than certain
+    // matches to the sheet's exact wording — flagged individually.
+    195,  // Victoria NPL (sheet: "NPL Victoria")
+    482,  // Queensland NPL (sheet: "NPL Queensland")
+    1226, // Victoria Premier League 2 (exact match to sheet)
+    835,  // New South Wales NPL 2 (sheet: "New South Wales League 2" — probable match)
+    481,  // Northern NSW NPL (sheet: "Northern NSW Premier League")
+    834,  // South Australia State League 1 (sheet has "Premier League" not
+          // "State League 1" — uncertain if same competition, included per
+          // your "any team, as long as it has data" instruction)
+    1093, // Tasmania Southern Championship (sheet: "Tasmania Premier League"
+          // — likely a regional qualifier, not certain to be the same comp)
+    836,  // Victoria NPL 2 (not explicitly on sheet, included cautiously)
+    833,  // Queensland Premier League (sheet: "NPL Queensland" — likely same
+          // competition under different naming)
+    194,  // South Australia NPL (sheet: "South Australia Premier League")
+    // ── BHUTAN ───────────────────────────────────────────────────────────────
+    1031, // Bhutan Premier League — was previously blocked for thin data;
+          // unblocked below since confirmed bettable per your sheet
   ],
-  // Leagues from the user's Bet365 sheet that could NOT be safely mapped to
-  // an API-Football ID from data already confirmed in this file. Guessing an
-  // ID wrong risks silently including the WRONG league, so these are left out
-  // until confirmed via a live League Inspector scan (Settings → debug mode →
-  // All Leagues Worldwide) while each is actually fixture-active. See chat.
+  // Leagues from the user's Bet365 sheet still not mapped to a confirmed
+  // API-Football ID. These didn't have fixtures in either debug scan run
+  // so far — try running the scan again on a different day, since cup
+  // competitions and some lower leagues don't play every day.
   bet365Unconfirmed:[
-    'Republic of Ireland First Division','Austria Bundesliga (Bet365 spelling: Bendesliga)',
-    'Denmark Superligaen','Estonia Cup','Finland Ykkonen (both groups + Women)',
-    'Iceland 2/3/4 Deild (incl. Women)','Iceland Premier League','Norway Division 1',
-    'Bulgaria First League','Estonia Meistriliiga','Estonia Esliiga','Finland Ykkösliiga',
-    'Finland Kakkonen Group A','Finland Kolmonen','Lithuania 1 Lyga','Bhutan Premier League',
+    'Austria Bundesliga (Bet365 spelling: Bendesliga)','Denmark Superligaen',
+    'Finland Ykkönen Women','Iceland 2/3/4 Deild (incl. Women)','Iceland Premier League',
+    'Norway Division 1','Bulgaria First League','Finland Kolmonen',
     'China U20 League','Malaysia President Cup','South Korea K League 2','Tunisia Cup',
     'Dominica Premier League','Copa Libertadores','Copa Sudamericana','Copa do Brasil',
-    'Argentina Cup','Peru Liga 1','Ecuador LigaPro Serie A/B','Uruguay Segunda/Torneo Intermedio',
-    'Paraguay Cup/Primera C','USA WPSL Women','USA NPSL','USA League Women',
-    'Various Australian state NPL leagues','Various Argentina/Brazil reserve, youth and women\'s leagues',
+    'Argentina Cup','Peru Liga 1','Uruguay Segunda/Torneo Intermedio',
+    'Paraguay Cup/Primera C (251 "Division Intermedia" is a possible but unconfirmed match)',
+    'USA WPSL Women','USA NPSL','USA League Women',
+    'Remaining Australian NPL/state leagues not yet cross-matched (1090,1230,648,1091,189,192,196,1094)',
+    'Specific Brazilian sheet entries (Carioca A2, Copa Espírito Santo, Paulista Serie B U20, Serie A U20) — the scan found DIFFERENT Brazilian state leagues (Maranhense-2, Cearense U20, Carioca C, Paulista-U20) that don\'t exactly match these names',
   ],
 };
 
@@ -1213,7 +1247,7 @@ const BLOCKED_LEAGUES=new Set([
   740,1128,1076,1086,1100,1107,1120,1073,1143,1069,  // Brazilian youth
   918,                                                 // UEFA U19 Women
   // ── WOMEN'S LEAGUES ────────────────────────────────────────────────────────
-  1117,549,915,660,641,1103,1229,1013,640,            // Women's leagues
+  1117,549,915,660,641,1229,1013,640,                  // Women's leagues (1103 NI Championship Women unblocked — confirmed bettable)
   // ── CUP / KNOCKOUT COMPETITIONS ────────────────────────────────────────────
   267,661,115,167,491,672,1113,1035,1097,1158,        // Various cups
   1232,                                                // Copa De La Liga Peru
@@ -1226,10 +1260,11 @@ const BLOCKED_LEAGUES=new Set([
   774,775,776,778,779,473,474,                         // Norwegian 3rd division groups
   366,                                                 // Faroe Islands 2nd tier
   // ── AUSTRALIAN SUB-LEAGUES ─────────────────────────────────────────────────
-  481,1090,1093,1230,648,650,482,1091,189,192,194,    // Australian NPL/state
-  834,835,833,195,196,1094,                            // More Australian state
+  // 195,482,1226,835,481,834,1093,836,833,194 unblocked — confirmed bettable
+  // per user's Bet365 sheet + live debug data (see AF_LEAGUES.bet365 comments)
+  1090,1230,648,1091,189,192,196,1094,                // Remaining unconfirmed Australian NPL/state
   // ── VERY LOW TIER / INSUFFICIENT DATA ──────────────────────────────────────
-  652,650,651,929,170,569,764,1031,968,                // Low tier leagues
+  652,650,651,929,170,569,764,968,                    // Low tier leagues (1031 Bhutan unblocked — confirmed bettable)
   489,                                                 // USL — unconfirmed which tier, kept blocked (256 unblocked, confirmed bettable per user's Bet365 list)
   330,                                                 // Kuwait Premier League
   571,                                                 // Tajikistan
@@ -1244,8 +1279,7 @@ const BLOCKED_LEAGUES=new Set([
   909,                                                 // MLS Next Pro
   479,                                                 // Canadian Premier League (low data)
   117,                                                 // Belarus 1. Division
-  247,248,249,                                         // Finnish Kakkonen groups
-  1087,                                                // Finnish Ykkösliiga
+  249,                                                 // Finnish Kakkonen Group C (247/248 unblocked — confirmed bettable)
   1086,                                                // Paulista U20
 ]);
 
@@ -1265,6 +1299,7 @@ const LEAGUE_TIERS={
   32:55,    // World Cup Qual (OFC)
   34:55,    // World Cup Qual (inter-conf playoff)
   777:55,   // World Cup (women)
+  493:25,   // UEFA European U19 Championship
   4:80,     // UEFA European Championship
   6:75,     // Africa Cup of Nations
   7:72,     // Copa America
@@ -1358,6 +1393,10 @@ const LEAGUE_TIERS={
   // ── FINLAND ────────────────────────────────────────────────────────────────
   244:58,   // Veikkausliiga
   245:48,   // Ykkönen
+  1087:40,  // Ykkösliiga — possible renamed/alternate version of Ykkönen (245),
+            // kept separate since it's unclear if these are the same competition
+  247:28,   // Kakkonen Group A (3rd tier)
+  248:28,   // Kakkonen Group B (3rd tier)
   // ── POLAND ─────────────────────────────────────────────────────────────────
   106:63,   // Ekstraklasa
   107:53,   // I Liga
@@ -1399,9 +1438,20 @@ const LEAGUE_TIERS={
   // ── LATVIA ─────────────────────────────────────────────────────────────────
   326:45,   // Virsliga
   // ── LITHUANIA ──────────────────────────────────────────────────────────────
-  166:45,   // A lyga
+  361:38,   // 1 Lyga — CONFIRMED via live debug. NOTE: this ID was also
+            // previously (incorrectly) used for "Jordan Pro League" — see
+            // that entry below, now marked unconfirmed to resolve the clash.
+  166:45,   // 2. Deild (Iceland) — CORRECTED: two separate live debug scans
+            // in this conversation confirm 166 is Iceland's 2. Deild, not
+            // "A lyga" as previously mislabeled
   // ── ESTONIA ────────────────────────────────────────────────────────────────
-  398:45,   // Meistriliiga
+  329:45,   // Meistriliiga — CORRECTED: live debug confirmed 329 is the real
+            // ID (398 was a previous guess, now unconfirmed — not removed,
+            // just no longer treated as the primary Meistriliiga entry)
+  398:30,   // Unconfirmed — was previously guessed as Meistriliiga; live data
+            // proved that's actually 329, so this ID's true identity is unknown
+  328:36,   // Esiliiga A (2nd tier)
+  657:30,   // Cup — noisier data expected, mixed-tier cup matchups
   // ── LUXEMBOURG ─────────────────────────────────────────────────────────────
   // ── ICELAND ────────────────────────────────────────────────────────────────
   164:48,   // Úrvalsdeild
@@ -1409,8 +1459,10 @@ const LEAGUE_TIERS={
   222:40,   // Premier League
   // ── IRELAND ────────────────────────────────────────────────────────────────
   357:52,   // League of Ireland Premier
+  358:38,   // League of Ireland First Division
   // ── NORTHERN IRELAND ───────────────────────────────────────────────────────
   384:48,   // NIFL Premiership
+  1103:30,  // NIFL Championship Women
   // ── WALES ──────────────────────────────────────────────────────────────────
   112:48,   // Cymru Premier
   // ── SAUDI ARABIA ───────────────────────────────────────────────────────────
@@ -1445,8 +1497,10 @@ const LEAGUE_TIERS={
   565:38,   // StarTimes Uganda Premier League
   // ── USA ────────────────────────────────────────────────────────────────────
   253:75,   // MLS
-  254:60,   // USL Championship
-  255:50,   // USL League One
+  254:60,   // USL — label unconfirmed (previously guessed "Championship" but
+            // live debug proved 255 holds that name; 254's real identity is
+            // unverified, kept at a mid tier as a safe default)
+  255:65,   // USL Championship — CORRECTED per live debug confirmation
   256:44,   // USL League Two — 4th tier, unblocked per user's Bet365 list
   // ── CANADA ─────────────────────────────────────────────────────────────────
   321:58,   // Canadian Premier League
@@ -1470,7 +1524,11 @@ const LEAGUE_TIERS={
   // ── PERU ───────────────────────────────────────────────────────────────────
   281:55,   // Liga 1
   // ── ECUADOR ────────────────────────────────────────────────────────────────
-  301:55,   // LigaPro
+  242:55,   // LigaPro Serie A — CORRECTED: live debug confirmed 242, not 301
+            // as previously guessed (301 kept below, now marked unconfirmed)
+  243:42,   // LigaPro Serie B
+  301:20,   // Unconfirmed — was previously guessed as LigaPro; live data
+            // proved that's actually 242, so this ID's true identity is unknown
   // ── URUGUAY ────────────────────────────────────────────────────────────────
   // ── PARAGUAY ───────────────────────────────────────────────────────────────
   282:52,   // División de Honor
@@ -1488,13 +1546,25 @@ const LEAGUE_TIERS={
   169:60,   // Chinese Super League (note: check vs Norway)
   // ── AUSTRALIA ──────────────────────────────────────────────────────────────
   188:58,   // A-League Men
+  195:32,   // Victoria NPL
+  482:32,   // Queensland NPL
+  1226:28,  // Victoria Premier League 2
+  835:28,   // New South Wales NPL 2
+  481:32,   // Northern NSW NPL
+  834:28,   // South Australia State League 1
+  1093:26,  // Tasmania Southern Championship
+  836:26,   // Victoria NPL 2
+  833:32,   // Queensland Premier League
+  194:32,   // South Australia NPL
   // ── INDIA ──────────────────────────────────────────────────────────────────
   323:52,   // Indian Super League
   // ── IRAN ───────────────────────────────────────────────────────────────────
   290:52,   // Persian Gulf Pro League
   // ── IRAQ ───────────────────────────────────────────────────────────────────
   // ── JORDAN ─────────────────────────────────────────────────────────────────
-  361:42,   // Pro League
+  // Pro League ID unconfirmed — 361 was previously guessed for this, but live
+  // debug data now confirms 361 is actually Lithuania's 1 Lyga (see above).
+  // Needs a fresh League Inspector scan while Jordan has live fixtures.
   // ── LEBANON ────────────────────────────────────────────────────────────────
   390:42,   // Premier League (confirmed from live debug)
   // ── SYRIA ──────────────────────────────────────────────────────────────────
