@@ -247,13 +247,14 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge">v6.8.0</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
     <button class="tab active" onclick="switchTab('predictor',this)">⚽ Predictor</button>
     <button class="tab" onclick="switchTab('odds',this)">🔍 Odds Analyser</button>
+    <button class="tab" onclick="switchTab('reporting',this)">📊 Reporting</button>
     <button class="tab" onclick="switchTab('settings',this)">⚙️ Settings</button>
   </div>
 </div>
@@ -294,10 +295,24 @@ th{color:var(--muted);font-weight:700}
     </div>
     <div id="tipsDebugContent" style="font-size:10px;color:#aaccdd;white-space:pre-wrap;line-height:1.5;max-height:400px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:monospace"></div>
   </div>
+  <div id="tipsList"></div>
+  <div id="tipsEmpty" class="tips-empty" style="display:none">
+    <div class="tips-empty-icon">📭</div>
+    <div class="tips-empty-title">No matches found today</div>
+    <div class="tips-empty-sub">No fixtures scheduled for your selected filter today. Try "All Leagues Worldwide" or check back tomorrow.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ REPORTING ═══════════════════ -->
+<div id="tab-reporting" class="section">
   <div id="accuracyPanel" class="card" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="card-title" style="margin:0">📊 Prediction Accuracy Tracker</div>
-      <button onclick="toggleAccuracyPanel()" id="accuracyToggleBtn" style="font-size:10px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">Hide</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="copyAccuracyCSV()" id="copyAccBtn" style="font-size:10px;padding:4px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">📋 Copy</button>
+        <button onclick="downloadAccuracyCSV()" style="font-size:10px;padding:4px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">⬇ CSV</button>
+        <button onclick="toggleAccuracyPanel()" id="accuracyToggleBtn" style="font-size:10px;padding:4px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">Hide</button>
+      </div>
     </div>
     <div id="accuracyContent">
       <div style="margin-bottom:10px">
@@ -345,11 +360,28 @@ th{color:var(--muted);font-weight:700}
       </div>
     </div>
   </div>
-  <div id="tipsList"></div>
-  <div id="tipsEmpty" class="tips-empty" style="display:none">
-    <div class="tips-empty-icon">📭</div>
-    <div class="tips-empty-title">No matches found today</div>
-    <div class="tips-empty-sub">No fixtures scheduled for your selected filter today. Try "All Leagues Worldwide" or check back tomorrow.</div>
+
+  <div id="teamLeaderboardPanel" class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin:0">🏆 Top Predicted Teams</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="copyLeaderboardCSV()" id="copyLbBtn" style="font-size:10px;padding:4px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">📋 Copy</button>
+        <button onclick="downloadLeaderboardCSV()" style="font-size:10px;padding:4px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);cursor:pointer">⬇ CSV</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-bottom:10px">Reflects whatever date range and confidence tab are set above. Ranked by games logged — click column headers to sort differently isn't available yet, but the full list (not just top 10) is included in CSV export.</p>
+    <div style="margin-bottom:10px;max-width:260px">
+      <div style="font-size:10px;color:var(--dim);margin-bottom:4px">Minimum games logged</div>
+      <select id="minGamesFilter" onchange="renderTeamLeaderboard()" style="width:100%;font-size:12px;padding:7px 8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+        <option value="1" selected>All teams (1+)</option>
+        <option value="3">3+ games</option>
+        <option value="5">5+ games</option>
+        <option value="10">10+ games</option>
+        <option value="20">20+ games</option>
+      </select>
+    </div>
+    <div id="teamLeaderboardTable"></div>
+    <p class="hint" style="margin-top:8px;font-size:10px">Percentages on teams with only a few logged games aren't statistically reliable yet — treat them as early signal, not a verdict.</p>
   </div>
 </div>
 
@@ -2896,6 +2928,11 @@ async function renderAccuracyTracker(){
       sc('1st pick hits',picks.length?pct(pick1,picks.length):'—','2nd: '+pct(pick2,picks.length)+' · 3rd: '+pct(pick3,picks.length),'var(--muted)',picks.length?Math.round(pick1/picks.length*100):0);
   }
 
+  // Store for CSV export — reflects whatever date-range/confidence-tab
+  // filters are currently active, so "export" gives you what you see
+  window.SE_LAST_FILTERED_ENTRIES=filtered;
+  renderTeamLeaderboard();
+
   // Set today's date as default in the date input
   const dateInput=document.getElementById('accuracyDateInput');
   if(dateInput&&!dateInput.value){dateInput.value=new Date().toISOString().slice(0,10);}
@@ -2939,6 +2976,142 @@ async function renderAccuracyTracker(){
   }).join('');
 
   logEl.innerHTML=headerCols+rows;
+}
+
+// ── TEAM LEADERBOARD ─────────────────────────────────────────────────────────
+// Parses "Home vs Away" (the convention used throughout the app) out of each
+// logged match, explodes each entry into two team-rows, and aggregates.
+function parseTeamsFromMatch(matchStr){
+  if(!matchStr)return null;
+  const parts=matchStr.split(/\s+vs\s+/i);
+  if(parts.length!==2)return null;
+  const home=parts[0].trim(), away=parts[1].trim();
+  if(!home||!away)return null;
+  return{home,away};
+}
+
+function buildTeamStats(entries){
+  const teamMap={};
+  entries.forEach(e=>{
+    const teams=parseTeamsFromMatch(e.match);
+    if(!teams)return; // skip entries that don't match the "X vs Y" pattern
+    [teams.home,teams.away].forEach(name=>{
+      if(!teamMap[name])teamMap[name]={name,entries:[]};
+      teamMap[name].entries.push(e);
+    });
+  });
+  const mostCommon=(vals,fallback)=>{
+    const counts={};
+    vals.forEach(v=>{const k=v||fallback;counts[k]=(counts[k]||0)+1;});
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||fallback;
+  };
+  return Object.values(teamMap).map(t=>{
+    const games=t.entries.length;
+    const exactHits=t.entries.filter(e=>e.exactHit).length;
+    const resultHits=t.entries.filter(e=>e.resultHit).length;
+    const avgGoalDiff=games?t.entries.reduce((a,e)=>a+(e.goalDiff||0),0)/games:0;
+    const mostCommonPick=mostCommon(t.entries.map(e=>e.pick),'0');
+    const mostCommonConf=mostCommon(t.entries.map(e=>e.conf),'any');
+    return{name:t.name,games,exactHits,resultHits,avgGoalDiff,mostCommonPick,mostCommonConf};
+  }).sort((a,b)=>b.games-a.games);
+}
+
+function renderTeamLeaderboard(){
+  const tableEl=document.getElementById('teamLeaderboardTable');
+  if(!tableEl)return; // not on this tab / not yet rendered
+  const entries=window.SE_LAST_FILTERED_ENTRIES||[];
+  const minGames=parseInt(document.getElementById('minGamesFilter')?.value||'1');
+  const allTeams=buildTeamStats(entries);
+  window.SE_LAST_LEADERBOARD=allTeams.filter(t=>t.games>=minGames); // full list, for CSV export
+  const top10=window.SE_LAST_LEADERBOARD.slice(0,10);
+
+  if(!top10.length){
+    tableEl.innerHTML='<div style="font-size:11px;color:var(--dim);text-align:center;padding:16px">No teams meet this threshold yet for the current filter.</div>';
+    return;
+  }
+
+  const pct=(n,d)=>d?Math.round(n/d*100)+'%':'—';
+  const header='<div style="display:grid;grid-template-columns:1fr 50px 90px 90px 60px;gap:6px;padding:6px;font-size:10px;color:var(--dim);font-weight:600;border-bottom:1px solid var(--border)"><span>Team</span><span style="text-align:right">Games</span><span style="text-align:right">Exact score</span><span style="text-align:right">Result</span><span style="text-align:right">Usual pick</span></div>';
+  const rows=top10.map(t=>{
+    const lowSample=t.games<5;
+    return '<div style="display:grid;grid-template-columns:1fr 50px 90px 90px 60px;gap:6px;padding:7px 6px;align-items:center;border-bottom:1px solid var(--border);font-size:11px'+(lowSample?';opacity:0.75':'')+'">'
+      +'<span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+t.name+'">'+t.name+'</span>'
+      +'<span style="text-align:right;color:var(--dim)">'+t.games+'</span>'
+      +'<span style="text-align:right">'+pct(t.exactHits,t.games)+' <span style="font-size:9px;color:var(--muted)">('+t.exactHits+'/'+t.games+')</span></span>'
+      +'<span style="text-align:right">'+pct(t.resultHits,t.games)+' <span style="font-size:9px;color:var(--muted)">('+t.resultHits+'/'+t.games+')</span></span>'
+      +'<span style="text-align:right">'+pickLabel(t.mostCommonPick)+'</span>'
+      +'</div>';
+  }).join('');
+  tableEl.innerHTML=header+rows;
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function csvEscape(field){
+  const s=String(field==null?'':field);
+  if(/[",\n]/.test(s))return'"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function toDelimited(rows,delim){
+  return rows.map(r=>r.map(f=>delim===','?csvEscape(f):String(f==null?'':f).replace(/\t/g,' ')).join(delim)).join('\n');
+}
+function downloadFile(filename,content,mime){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function copyToClipboardWithFeedback(text,btnId){
+  const btn=document.getElementById(btnId);
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(e2){}
+    document.body.removeChild(ta);
+  }
+  if(btn){
+    const original=btn.textContent;
+    btn.textContent='✓ Copied';btn.style.color='var(--green)';
+    setTimeout(()=>{btn.textContent=original;btn.style.color='var(--dim)';},2000);
+  }
+}
+
+const ACC_CSV_HEADER=['Date','Match','Predicted','Actual','Confidence','Probability','Pick','Exact Hit','Result Hit','Goal Diff'];
+function accEntriesToRows(entries){
+  const pickText={0:'Miss',1:'1st',2:'2nd',3:'3rd',4:'4th',5:'5th'};
+  return entries.map(e=>[e.date,e.match,e.pred,e.actual,e.conf||'',e.prob||'',pickText[e.pick]||e.pick||'',e.exactHit?'Yes':'No',e.resultHit?'Yes':'No',e.goalDiff!=null?e.goalDiff:'']);
+}
+function copyAccuracyCSV(){
+  const entries=window.SE_LAST_FILTERED_ENTRIES||[];
+  const rows=[ACC_CSV_HEADER,...accEntriesToRows(entries)];
+  copyToClipboardWithFeedback(toDelimited(rows,'\t'),'copyAccBtn');
+}
+function downloadAccuracyCSV(){
+  const entries=window.SE_LAST_FILTERED_ENTRIES||[];
+  const rows=[ACC_CSV_HEADER,...accEntriesToRows(entries)];
+  downloadFile('scoutedge-accuracy-log.csv',toDelimited(rows,','),'text/csv');
+}
+
+const LB_CSV_HEADER=['Team','Games Logged','Exact Score Hits','Exact Score %','Correct Result Hits','Correct Result %','Avg Goal Diff','Most Common Pick','Most Common Confidence Tier'];
+function leaderboardToRows(teams){
+  const pickText={0:'Miss',1:'1st',2:'2nd',3:'3rd',4:'4th',5:'5th'};
+  const confText={max:'Max Accuracy',high:'High',med:'Medium',any:'Show All'};
+  return teams.map(t=>[t.name,t.games,t.exactHits,t.games?Math.round(t.exactHits/t.games*100)+'%':'',t.resultHits,t.games?Math.round(t.resultHits/t.games*100)+'%':'',t.avgGoalDiff.toFixed(2),pickText[t.mostCommonPick]||t.mostCommonPick,confText[t.mostCommonConf]||t.mostCommonConf]);
+}
+function copyLeaderboardCSV(){
+  const teams=window.SE_LAST_LEADERBOARD||[];
+  const rows=[LB_CSV_HEADER,...leaderboardToRows(teams)];
+  copyToClipboardWithFeedback(toDelimited(rows,'\t'),'copyLbBtn');
+}
+function downloadLeaderboardCSV(){
+  const teams=window.SE_LAST_LEADERBOARD||[];
+  const rows=[LB_CSV_HEADER,...leaderboardToRows(teams)];
+  downloadFile('scoutedge-team-leaderboard.csv',toDelimited(rows,','),'text/csv');
 }
 
 document.addEventListener('DOMContentLoaded',renderAccuracyTracker);
