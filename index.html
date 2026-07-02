@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1000,6 +1000,36 @@ const AF_LEAGUES={
     210,  // HNL
     // ── SERBIA ─────────────────────────────────────────────────────────────
     286,  // Super Liga
+    // ── ADDED FROM USER'S BET365 SCREENSHOT LIST (see conversation) ─────────
+    // Only IDs already confirmed elsewhere in this file (LEAGUE_TIERS or
+    // prior live debug data) are added here — unconfirmed leagues from the
+    // sheet are listed in a comment below rather than guessed into the code.
+    357,  // Republic of Ireland Premier Division
+    114,  // Sweden Superettan (2nd tier — confirmed bettable per sheet)
+    244,  // Finland Veikkausliiga
+    390,  // Lebanon League
+    268,  // Morocco GNF1 / Botola
+    254,  // USA USL Championship
+    255,  // USA USL League One
+    256,  // USA USL League Two — was previously blocked for thin data;
+          // unblocked below since the user's sheet confirms it's bettable
+  ],
+  // Leagues from the user's Bet365 sheet that could NOT be safely mapped to
+  // an API-Football ID from data already confirmed in this file. Guessing an
+  // ID wrong risks silently including the WRONG league, so these are left out
+  // until confirmed via a live League Inspector scan (Settings → debug mode →
+  // All Leagues Worldwide) while each is actually fixture-active. See chat.
+  bet365Unconfirmed:[
+    'Republic of Ireland First Division','Austria Bundesliga (Bet365 spelling: Bendesliga)',
+    'Denmark Superligaen','Estonia Cup','Finland Ykkonen (both groups + Women)',
+    'Iceland 2/3/4 Deild (incl. Women)','Iceland Premier League','Norway Division 1',
+    'Bulgaria First League','Estonia Meistriliiga','Estonia Esliiga','Finland Ykkösliiga',
+    'Finland Kakkonen Group A','Finland Kolmonen','Lithuania 1 Lyga','Bhutan Premier League',
+    'China U20 League','Malaysia President Cup','South Korea K League 2','Tunisia Cup',
+    'Dominica Premier League','Copa Libertadores','Copa Sudamericana','Copa do Brasil',
+    'Argentina Cup','Peru Liga 1','Ecuador LigaPro Serie A/B','Uruguay Segunda/Torneo Intermedio',
+    'Paraguay Cup/Primera C','USA WPSL Women','USA NPSL','USA League Women',
+    'Various Australian state NPL leagues','Various Argentina/Brazil reserve, youth and women\'s leagues',
   ],
 };
 
@@ -1200,7 +1230,7 @@ const BLOCKED_LEAGUES=new Set([
   834,835,833,195,196,1094,                            // More Australian state
   // ── VERY LOW TIER / INSUFFICIENT DATA ──────────────────────────────────────
   652,650,651,929,170,569,764,1031,968,                // Low tier leagues
-  256,489,                                             // USL lower tiers
+  489,                                                 // USL — unconfirmed which tier, kept blocked (256 unblocked, confirmed bettable per user's Bet365 list)
   330,                                                 // Kuwait Premier League
   571,                                                 // Tajikistan
   969,                                                 // Macao
@@ -1417,6 +1447,7 @@ const LEAGUE_TIERS={
   253:75,   // MLS
   254:60,   // USL Championship
   255:50,   // USL League One
+  256:44,   // USL League Two — 4th tier, unblocked per user's Bet365 list
   // ── CANADA ─────────────────────────────────────────────────────────────────
   321:58,   // Canadian Premier League
   // ── MEXICO ─────────────────────────────────────────────────────────────────
@@ -1498,6 +1529,39 @@ function extractGoalAvg(statsObj,side,context){
   return null;
 }
 
+function renderDebugPanel(){
+  if(!window.SE_DEBUG_ENABLED)return;
+  const ls=window.SE_LEAGUE_SUMMARY||[];
+  let dbgText='══ LEAGUE INSPECTOR (all scheduled fixtures today) ══\n';
+  dbgText+='Tier  │ ID     │ Fixtures │ League\n';
+  dbgText+='──────┼────────┼──────────┼──────────────────────────────────\n';
+  if(!ls.length){
+    dbgText+='(no fixtures returned by the API for today/tomorrow)\n';
+  }
+  ls.forEach(l=>{
+    const tierStr=String(l.tier).padStart(5);
+    const idStr=String(l.id).padStart(6);
+    const countStr=String(l.count).padStart(8);
+    const flag=l.tier<=10?' ⚠️ UNKNOWN ID':l.tier<=30?' ↓ low tier':'';
+    dbgText+=tierStr+' │ '+idStr+' │ '+countStr+' │ '+l.name+' ('+l.country+')'+flag+'\n';
+  });
+  if(window.SE_DEBUG&&window.SE_DEBUG.captured){
+    const dbg=window.SE_DEBUG;
+    dbgText+='\n══ FIXTURE STAT REQUEST DEBUG ══\n';
+    dbgText+='FIXTURE TESTED: '+dbg.fixture+'\n\nREQUEST URL:\n'+(dbg.homeUrl||'n/a')+'\n\n';
+    if(dbg.error){
+      dbgText+='REQUEST FAILED WITH ERROR:\n'+dbg.error;
+    } else {
+      dbgText+='HOME TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.homeRaw,null,2).slice(0,3000);
+      dbgText+='\n\nAWAY TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.awayRaw,null,2).slice(0,1500);
+    }
+  } else {
+    dbgText+='\n(No fixture stats request was made this scan — either zero fixtures\npassed the bettable leagues filter, or the scan stopped before Step 2.)';
+  }
+  document.getElementById('tipsDebugContent').textContent=dbgText;
+  document.getElementById('tipsDebugPanel').style.display='block';
+}
+
 async function fetchDailyTips(){
   if(tipsRunning||!KEYS.af)return;
   tipsRunning=true;
@@ -1576,18 +1640,11 @@ async function fetchDailyTips(){
 
     const total=allFixtures.length;
 
-    if(!total){
-      document.getElementById('tipsErr').textContent='No upcoming fixtures found for today ('+today+'). This usually means the API key has no requests left, or there genuinely are no scheduled matches in this filter today.';
-      document.getElementById('tipsEmpty').style.display='block';
-      document.getElementById('tipsProgress').style.display='none';
-      return;
-    }
-
-    // Sort by league tier so the most prestigious games get stat calls first
-    // This maximises quality within the API call budget — but ALL leagues are eligible
-    allFixtures.sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
-
-    // Build a league summary for the debug panel
+    // Build the League Inspector summary from the RAW unfiltered response —
+    // this must happen BEFORE the early-exit below, so debug data is always
+    // available even on a day where zero fixtures pass the bettable-leagues
+    // filter. This is what lets you discover new league IDs: the table shows
+    // every league with fixtures today, independent of the whitelist.
     const leagueSummary=[...new Map(
       allFixturesRaw
         .filter(f=>['NS','TBD'].includes(f.fixture.status.short))
@@ -1597,6 +1654,19 @@ async function fetchDailyTips(){
       .forEach(f=>{const l=leagueSummary.find(l=>l.id===f.league.id);if(l)l.count++;});
     leagueSummary.sort((a,b)=>b.tier-a.tier);
     window.SE_LEAGUE_SUMMARY=leagueSummary; // expose for debug panel
+
+    if(!total){
+      renderDebugPanel();
+      document.getElementById('tipsErr').textContent='No upcoming bettable fixtures found for today ('+today+'). '
+        +(allFixturesRaw.length>0?'The API returned '+allFixturesRaw.length+' fixtures worldwide, but none are in your bettable leagues list. Tick "Show raw API debug data" and re-run to see the full League Inspector table of what IS on today — useful for spotting new leagues to add.':'This usually means the API key has no requests left, or there genuinely are no scheduled matches today.');
+      document.getElementById('tipsEmpty').style.display='block';
+      document.getElementById('tipsProgress').style.display='none';
+      return;
+    }
+
+    // Sort by league tier so the most prestigious games get stat calls first
+    // This maximises quality within the API call budget — but ALL leagues are eligible
+    allFixtures.sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
 
     // Maximum Accuracy mode scans more fixtures to find qualifying games
     const scanLimit=cf==='max'?20:15;
@@ -1957,32 +2027,7 @@ async function fetchDailyTips(){
     }
 
 
-    // Show debug panel if enabled, regardless of outcome
-    if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&window.SE_DEBUG.captured){
-      const dbg=window.SE_DEBUG;
-      // League inspector — always shown when debug is enabled
-      const ls=window.SE_LEAGUE_SUMMARY||[];
-      let dbgText='══ LEAGUE INSPECTOR (all scheduled fixtures today) ══\n';
-      dbgText+='Tier  │ ID     │ Fixtures │ League\n';
-      dbgText+='──────┼────────┼──────────┼──────────────────────────────────\n';
-      ls.forEach(l=>{
-        const tierStr=String(l.tier).padStart(5);
-        const idStr=String(l.id).padStart(6);
-        const countStr=String(l.count).padStart(8);
-        const flag=l.tier<=10?' ⚠️ UNKNOWN ID':l.tier<=30?' ↓ low tier':'';
-        dbgText+=tierStr+' │ '+idStr+' │ '+countStr+' │ '+l.name+' ('+l.country+')'+flag+'\n';
-      });
-      dbgText+='\n══ FIXTURE STAT REQUEST DEBUG ══\n';
-      dbgText+='FIXTURE TESTED: '+dbg.fixture+'\n\nREQUEST URL:\n'+(dbg.homeUrl||'n/a')+'\n\n';
-      if(dbg.error){
-        dbgText+='REQUEST FAILED WITH ERROR:\n'+dbg.error;
-      } else {
-        dbgText+='HOME TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.homeRaw,null,2).slice(0,3000);
-        dbgText+='\n\nAWAY TEAM RAW RESPONSE:\n'+JSON.stringify(dbg.awayRaw,null,2).slice(0,1500);
-      }
-      document.getElementById('tipsDebugContent').textContent=dbgText;
-      document.getElementById('tipsDebugPanel').style.display='block';
-    }
+    renderDebugPanel();
 
     setProgress('Step 3 of 4 — Checking injuries','Fetching injury and suspension reports…',62);
     const injuryMap={};
