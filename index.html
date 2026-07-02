@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.7.1</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2162,6 +2162,15 @@ async function fetchDailyTips(){
     else if(cf==='high')filtered=predictions.filter(p=>p.confidence>0.45);
     else if(cf==='med')filtered=predictions.filter(p=>p.confidence>0.28);
 
+    // Tag each prediction with the filter mode that actually qualified it,
+    // so the badge on each tip card reflects the scan you ran rather than
+    // being re-derived from the raw confidence score. Previously the badge
+    // used the same >0.45 threshold as "High Only" AND as the "Max Accuracy"
+    // label cutoff, so every High Only result displayed as "Max Accuracy" —
+    // and Max Accuracy results (which qualify on xG/dominance, not the score)
+    // could show as "High" or "Medium" depending on where their score fell.
+    filtered=filtered.map(p=>({...p,qualifiedVia:cf}));
+
     // Soft deduplicate — cap same scoreline at 3 appearances
     const scoreCount={};
     const deduped=[];
@@ -2546,10 +2555,15 @@ function renderTips(tips,date,totalFound,eligibleCount){
     const koTime=koDate?koDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'TBD';
     const koDay=koDate?koDate.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}):'';
     const koDisplay=koDate?(koDay+' · '+koTime):'TBD';
-    // Confidence level badge
-    const confLevel=t.confidence>0.45?'Max Accuracy':t.confidence>0.28?'High Confidence':'Medium';
-    const confBadgeCol=t.confidence>0.45?'#00cfff':t.confidence>0.28?'#0c6':'#fa0';
-    const confBadgeBg=t.confidence>0.45?'rgba(0,207,255,0.12)':t.confidence>0.28?'rgba(0,200,100,0.12)':'rgba(255,170,0,0.12)';
+    // Confidence level badge — reflects the filter mode that actually
+    // qualified this result (t.qualifiedVia, set during filtering), not a
+    // re-derived guess from the raw confidence score. In "Show All" mode
+    // there's no single filter to attribute, so it falls back to a
+    // score-based label there only.
+    const modeLabels={max:'Max Accuracy',high:'High Confidence',med:'Medium+'};
+    const confLevel=modeLabels[t.qualifiedVia]||(t.confidence>0.45?'Max Accuracy':t.confidence>0.28?'High Confidence':'Medium');
+    const confBadgeCol=confLevel==='Max Accuracy'?'#00cfff':confLevel.startsWith('High')?'#0c6':'#fa0';
+    const confBadgeBg=confLevel==='Max Accuracy'?'rgba(0,207,255,0.12)':confLevel.startsWith('High')?'rgba(0,200,100,0.12)':'rgba(255,170,0,0.12)';
     const confBadge='<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:'+confBadgeBg+';color:'+confBadgeCol+'">'+confLevel+'</span>';
     // Dominance ratio indicator — built outside template literal to avoid nesting issues
     const ratio=t.dominanceRatio||1;
