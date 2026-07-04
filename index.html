@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.8.0</span>
+    <span class="badge">v6.8.1</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -2059,12 +2059,20 @@ async function fetchDailyTips(){
                 gf+=isHome?g.goals.home:g.goals.away;
                 ga+=isHome?g.goals.away:g.goals.home;
               });
-              return{scored:gf/finished.length,conceded:ga/finished.length,gp:finished.length};
+              // Most recent finished fixture date — used for rest-days calculation.
+              // Free byproduct of a call we already make for thin-sample teams;
+              // NOT fetched separately for well-documented teams (15+ games) to
+              // avoid undoing the scan-speed work already done — those teams
+              // simply won't get a rest-days adjustment, which is an honest
+              // partial-coverage tradeoff rather than adding more API calls.
+              const sorted=[...finished].sort((a,b)=>new Date(b.fixture.date)-new Date(a.fixture.date));
+              const lastFixtureDate=sorted[0]?.fixture?.date||null;
+              return{scored:gf/finished.length,conceded:ga/finished.length,gp:finished.length,lastFixtureDate};
             };
             const hRecent=calcFormAvg(hForm,f.teams.home.id);
             const aRecent=calcFormAvg(aForm,f.teams.away.id);
-            if(hRecent){homeStats._recentScored=hRecent.scored;homeStats._recentConceded=hRecent.conceded;homeStats._recentGP=hRecent.gp;}
-            if(aRecent){awayStats._recentScored=aRecent.scored;awayStats._recentConceded=aRecent.conceded;awayStats._recentGP=aRecent.gp;}
+            if(hRecent){homeStats._recentScored=hRecent.scored;homeStats._recentConceded=hRecent.conceded;homeStats._recentGP=hRecent.gp;homeStats._lastFixtureDate=hRecent.lastFixtureDate;}
+            if(aRecent){awayStats._recentScored=aRecent.scored;awayStats._recentConceded=aRecent.conceded;awayStats._recentGP=aRecent.gp;awayStats._lastFixtureDate=aRecent.lastFixtureDate;}
           }catch(e){}
         }
       }
@@ -2397,6 +2405,31 @@ function buildTipPrediction(md,injuryMap){
 
   let{lHome,lAway}=calcLambdas(hAtk,hDef,aAtk,aDef,lgH,lgA,venue);
 
+  // ── ALTITUDE ADJUSTMENT ────────────────────────────────────────────────────
+  let altitudeNote='';
+  const altAdj=getAltitudeAdjustment(f,isIntl,venue);
+  if(altAdj){
+    lHome*=altAdj.homeMult;
+    lAway*=altAdj.awayMult;
+    altitudeNote='\n\nAltitude: '+altAdj.note;
+  }
+
+  // ── REST DAYS ADJUSTMENT ───────────────────────────────────────────────────
+  // Only applies when we have last-fixture-date data (thin-sample teams where
+  // the recent-form fetch already ran). Silently skipped otherwise.
+  let restDaysNote='';
+  const hRest=getRestDaysMultiplier(md.home?._lastFixtureDate,ko);
+  const aRest=getRestDaysMultiplier(md.away?._lastFixtureDate,ko);
+  if(hRest&&hRest.mult<1){
+    lHome*=hRest.mult;
+    restDaysNote+='\n  '+hName+': '+Math.round(hRest.restDays)+' days rest — '+((1-hRest.mult)*100).toFixed(0)+'% fatigue penalty';
+  }
+  if(aRest&&aRest.mult<1){
+    lAway*=aRest.mult;
+    restDaysNote+='\n  '+aName+': '+Math.round(aRest.restDays)+' days rest — '+((1-aRest.mult)*100).toFixed(0)+'% fatigue penalty';
+  }
+  if(restDaysNote)restDaysNote='\n\nRest days:'+restDaysNote;
+
   // ── SMARTER INJURY WEIGHTING ──────────────────────────────────────────────
   // Old approach: flat 5% reduction per injured player, capped at 25%.
   // New approach: cross-reference injuries against the team's key players
@@ -2557,6 +2590,8 @@ function buildTipPrediction(md,injuryMap){
     +formNote
     +h2hNote
     +oddsNote
+    +altitudeNote
+    +restDaysNote
     +(hTopPlayers.length?'\n\nKey players — '+hName+':\n  '+hTopPlayers.join('\n  '):'')
     +(aTopPlayers.length?'\n\nKey players — '+aName+':\n  '+aTopPlayers.join('\n  '):'')
     +'\n\nOutcome probabilities (after all adjustments):\n  '+hName+' win: '+pct(blendedOutcomes.hw)
@@ -3333,6 +3368,76 @@ function applyDixonColes(matrix,lh,la,rho=-0.05){
 function calcOutcomes(m,max){let hw=0,d=0,aw=0;for(let h=0;h<=max;h++)for(let a=0;a<=max;a++){if(h>a)hw+=m[h][a];else if(h===a)d+=m[h][a];else aw+=m[h][a];}return{hw,d,aw};}
 function topN(m,max,n=6){const s=[];for(let h=0;h<=max;h++)for(let a=0;a<=max;a++)s.push({h,a,p:m[h][a]});return s.sort((a,b)=>b.p-a.p).slice(0,n);}
 function pct(v){return(v*100).toFixed(1)+'%'}
+
+// ── ALTITUDE ADJUSTMENT — extreme venues only ─────────────────────────────────
+// Research basis: reduced oxygen at altitude measurably slows recovery between
+// high-intensity efforts (2010 World Cup tracking data showed ~3% less ground
+// covered and ~25% fewer explosive sprints above 1,200m). The effect on final
+// SCORELINES specifically is genuinely disputed in the literature — some
+// studies find a real acclimatization advantage for home teams based at
+// altitude, others find no effect once team quality is controlled for — so
+// this is deliberately a MODEST adjustment, not an attempt to fully model the
+// strongest effect sizes cited in the more contested studies.
+// Only a small, curated list of well-documented extreme-altitude venues are
+// covered — this is not a general geocoding system for all ~88 leagues, since
+// the effect is irrelevant for the overwhelming majority of sea-level fixtures.
+const EXTREME_ALTITUDE_VENUES={
+  'la paz':{altitude:3640,tier:'extreme'},
+  'quito':{altitude:2850,tier:'extreme'},
+  'bogota':{altitude:2640,tier:'extreme'},
+  'bogotá':{altitude:2640,tier:'extreme'},
+  'cusco':{altitude:3400,tier:'extreme'},
+  'mexico city':{altitude:2240,tier:'high'},
+  'ciudad de mexico':{altitude:2240,tier:'high'},
+  'addis ababa':{altitude:2355,tier:'high'},
+  'johannesburg':{altitude:1753,tier:'moderate'},
+  'nairobi':{altitude:1795,tier:'moderate'},
+  'harare':{altitude:1490,tier:'moderate'},
+};
+
+function getAltitudeAdjustment(fixture,isIntl,venueType){
+  const city=fixture?.fixture?.venue?.city;
+  if(!city)return null;
+  const match=EXTREME_ALTITUDE_VENUES[city.trim().toLowerCase()];
+  if(!match)return null;
+
+  // Neutral/international fixtures: nobody is acclimatized, so both teams
+  // get the same modest fatigue penalty rather than treating either side
+  // as "home advantage". This deliberately doesn't special-case a host
+  // nation's own players even if they play club football at that altitude —
+  // kept simple rather than trying to model individual player backgrounds.
+  const isNeutral=isIntl||venueType==='neutral';
+  const magnitudes={extreme:{club:{home:1.08,away:0.88},neutral:0.92},
+                     high:{club:{home:1.05,away:0.92},neutral:0.95},
+                     moderate:{club:{home:1.03,away:0.95},neutral:0.97}};
+  const m=magnitudes[match.tier];
+
+  if(isNeutral){
+    return{homeMult:m.neutral,awayMult:m.neutral,
+      note:'Neutral-venue altitude ('+match.altitude+'m, '+city+') — modest fatigue penalty applied to both teams, since neither is acclimatized'};
+  }
+  return{homeMult:m.club.home,awayMult:m.club.away,
+    note:'Home team altitude advantage ('+match.altitude+'m, '+city+') — modest boost to home, penalty to away for acclimatization difference'};
+}
+
+// ── REST DAYS ADJUSTMENT ──────────────────────────────────────────────────────
+// Well-evidenced fatigue effect: short turnarounds between matches (especially
+// under ~4 days) measurably reduce high-intensity running output. Tiered
+// rather than a hard cliff, since the effect tapers rather than switching on.
+// Only applies when we have a team's last fixture date available — which is a
+// free byproduct of the recent-form fetch for teams with under 15 games
+// played this season. Teams with 15+ games (where that fetch is skipped to
+// keep scans fast) simply don't get this adjustment — an honest partial-
+// coverage tradeoff rather than adding a new API call just for this.
+function getRestDaysMultiplier(lastFixtureDate,thisKickoff){
+  if(!lastFixtureDate||!thisKickoff)return null;
+  const restDays=(new Date(thisKickoff)-new Date(lastFixtureDate))/(1000*60*60*24);
+  if(!isFinite(restDays)||restDays<0)return null;
+  if(restDays<=2)return{mult:0.90,restDays};
+  if(restDays<=3)return{mult:0.95,restDays};
+  if(restDays<=5)return{mult:0.98,restDays};
+  return{mult:1.0,restDays};
+}
 
 function applyVenue(lHome,lAway,venue,lgHome,lgAway){
   // neutral: use avg of home/away for both
