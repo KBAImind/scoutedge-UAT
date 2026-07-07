@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.8.1</span>
+    <span class="badge">v6.8.2</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -1615,6 +1615,35 @@ const LEAGUE_TIERS={
   // ── VIETNAM ────────────────────────────────────────────────────────────────
 };
 function leagueTier(id){return LEAGUE_TIERS[id]||10;}
+
+// ── QUALIFYING ROUND DE-PRIORITISATION ────────────────────────────────────────
+// UEFA club competitions (Champions League, Europa League, Conference League)
+// carry a high prestige tier reflecting their GROUP STAGE / KNOCKOUT calibre —
+// but in July/August their qualifying rounds feature small clubs (e.g. Armenia
+// or Latvia's domestic champions) who almost always have 0 games played this
+// season, since a new season has only just started for them. Because fixtures
+// are processed in tier order before the scanLimit cap, these thin-data
+// qualifiers were crowding out well-documented mid-tier leagues (Serie B,
+// Ecuador, USL) entirely — e.g. 14 UCL qualifying fixtures + 2 World Cup
+// fixtures alone filled the whole 15-fixture scan budget, leaving zero room
+// for anything else, confirmed via live debug data (Ararat-Armenia vs Riga,
+// both teams 0 games played).
+// This ONLY affects the order fixtures are picked for PROCESSING — it does
+// not change a competition's true tier used for display or confidence
+// tiebreaking, and group-stage/knockout fixtures of the same competition
+// later in the season keep their full tier score untouched.
+const QUALIFYING_ROUND_COMPETITIONS=new Set([2,3,848]); // UCL, Europa League, Conference League
+function getEffectiveTier(f){
+  const baseTier=leagueTier(f.league.id);
+  if(QUALIFYING_ROUND_COMPETITIONS.has(f.league.id)){
+    const round=(f.league.round||'').toLowerCase();
+    if(round.includes('qualifying')||round.includes('preliminary')){
+      return 25; // treat as mid-low tier for processing order only
+    }
+  }
+  return baseTier;
+}
+
 function mHomeName(f){return f.teams.home.name;}
 function mAwayName(f){return f.teams.away.name;}
 
@@ -1797,9 +1826,13 @@ async function fetchDailyTips(){
       return;
     }
 
-    // Sort by league tier so the most prestigious games get stat calls first
-    // This maximises quality within the API call budget — but ALL leagues are eligible
-    allFixtures.sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
+    // Sort by EFFECTIVE league tier so the most prestigious games with
+    // reliable data get stat calls first — this discounts continental
+    // qualifying-round fixtures (see getEffectiveTier) so they don't crowd
+    // out well-documented domestic leagues purely on competition prestige.
+    // Note: this only affects processing ORDER — display and confidence
+    // tiebreaking still use each fixture's true competition tier.
+    allFixtures.sort((a,b)=>getEffectiveTier(b)-getEffectiveTier(a));
 
     // Maximum Accuracy mode scans more fixtures to find qualifying games
     const scanLimit=cf==='max'?20:15;
