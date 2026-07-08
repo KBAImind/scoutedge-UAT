@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.8.2</span>
+    <span class="badge">v6.8.3</span>
     <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
@@ -1720,6 +1720,21 @@ function renderDebugPanel(){
   } else {
     dbgText+='\n(No fixture stats request was made this scan — either zero fixtures\npassed the bettable leagues filter, or the scan stopped before Step 2.)';
   }
+  // ── xG DIAGNOSTIC CHECK ────────────────────────────────────────────────────
+  // One-off check: does /fixtures/statistics contain any expected-goals field?
+  if(window.SE_DEBUG&&window.SE_DEBUG.xgCheck){
+    const xg=window.SE_DEBUG.xgCheck;
+    dbgText+='\n\n══ xG DIAGNOSTIC CHECK (does API-Football have expected goals data?) ══\n';
+    if(xg.note){
+      dbgText+=xg.note;
+    } else {
+      dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
+      dbgText+='RAW RESPONSE:\n'+JSON.stringify(xg.raw,null,2).slice(0,3000);
+      const rawStr=JSON.stringify(xg.raw).toLowerCase();
+      const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
+      dbgText+='\n\n'+(hasXg?'✅ FOUND a field that looks like expected goals — see raw response above.':'❌ No expected-goals field found in this response.');
+    }
+  }
   document.getElementById('tipsDebugContent').textContent=dbgText;
   document.getElementById('tipsDebugPanel').style.display='block';
 }
@@ -2050,6 +2065,33 @@ async function fetchDailyTips(){
               window.SE_DEBUG.homeRaw=hs;
               window.SE_DEBUG.awayRaw=as;
             }
+            // ── ONE-OFF xG DIAGNOSTIC CHECK ──────────────────────────────────
+            // Checks whether API-Football's per-match statistics endpoint
+            // contains any expected-goals field, for a completed fixture
+            // (today's fixture hasn't been played yet, so it has no match
+            // stats — we need a recently FINISHED game to test against).
+            // Runs once per scan only, 2 extra calls total, not per-fixture.
+            if(window.SE_DEBUG&&!window.SE_DEBUG.xgChecked){
+              window.SE_DEBUG.xgChecked=true;
+              try{
+                const lastFixtureRes=await afFetch('/fixtures?team='+f.teams.home.id+'&last=1');
+                const lastFixture=lastFixtureRes.response&&lastFixtureRes.response[0];
+                if(lastFixture&&lastFixture.fixture&&lastFixture.fixture.status.short==='FT'){
+                  const statsUrl='/fixtures/statistics?fixture='+lastFixture.fixture.id;
+                  const statsRes=await afFetch(statsUrl);
+                  window.SE_DEBUG.xgCheck={
+                    testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
+                    url:statsUrl,
+                    raw:statsRes
+                  };
+                } else {
+                  window.SE_DEBUG.xgCheck={note:'No completed fixture found for '+f.teams.home.name+' to test against.'};
+                }
+              }catch(e){
+                window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
+              }
+            }
+
             const hPlayed=hs.response&&hs.response.fixtures&&hs.response.fixtures.played;
             const aPlayed=as.response&&as.response.fixtures&&as.response.fixtures.played;
             const hG=(hPlayed&&(hPlayed.home||hPlayed.total))||0;
