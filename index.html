@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2008,7 +2008,15 @@ async function fetchDailyTips(){
       const WHITELIST_LEAGUE_NAMES={256:'USL League Two',243:'Ecuador Liga Pro Serie B',567:'Tanzania Ligi kuu Bara',328:'Estonia Esiliiga A'};
       window.SE_DEBUG.xgCheckWhitelist=[];
       for(const lid of WHITELIST_LEAGUES_TO_CHECK){
-        const fx=toProcess.find(f=>f.league.id===lid);
+        // Search allFixtures (whitelist-filtered, but NOT yet capped by
+        // scanLimit) rather than toProcess — a diagnostic check shouldn't be
+        // artificially constrained by the same processing budget that limits
+        // real predictions. USL League Two alone can have 40+ fixtures on a
+        // given day, easily filling the entire scanLimit before lower-tier
+        // leagues like Ecuador or Tanzania ever get a look in — that's a
+        // real crowding-out dynamic worth knowing about, but it shouldn't
+        // also block us from testing those leagues here.
+        const fx=allFixtures.find(f=>f.league.id===lid);
         if(!fx){
           window.SE_DEBUG.xgCheckWhitelist.push({league:WHITELIST_LEAGUE_NAMES[lid],note:'Not in today\'s fixture list — skipped.'});
           continue;
