@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1277,6 +1277,23 @@ const RELIABLE_LEAGUES=new Set([
 // with mixed-tier opponents, amateur/regional tournaments, and sub-divisions
 // that are too granular to have reliable stats coverage.
 // IDs confirmed from live debug data — add new ones here as they appear.
+// Known xG (expected goals) coverage on API-Football's /fixtures/statistics
+// endpoint, built up entirely from live debug testing in-app — not assumed
+// or guessed. true = confirmed has the expected_goals field, false =
+// confirmed does NOT (either no xG specifically, or no match stats at all).
+// Leagues not listed here are simply untested so far.
+// UPDATE THIS as more leagues get tested via the xG debug checks below —
+// once a league is in here, the checks skip it rather than wasting calls
+// re-confirming something we already know.
+const XG_COVERAGE_KNOWN={
+  1:true,     // World Cup — confirmed via live debug (Paraguay vs France)
+  39:true,    // Premier League — confirmed via live debug (Brighton vs Man Utd)
+  255:false,  // USL Championship — confirmed via live debug (no stats at all)
+  256:false,  // USL League Two — confirmed via live debug (has stats, no xG)
+  243:false,  // Ecuador Liga Pro Serie B — confirmed via live debug (no stats at all)
+  328:false,  // Estonia Esiliiga A — confirmed via live debug (no stats at all)
+};
+
 const BLOCKED_LEAGUES=new Set([
   // ── YOUTH LEAGUES ──────────────────────────────────────────────────────────
   740,1128,1076,1086,1100,1107,1120,1073,1143,1069,  // Brazilian youth
@@ -1940,23 +1957,24 @@ async function fetchDailyTips(){
     }
 
     // ── SECOND CHECK — MAJOR DOMESTIC LEAGUE, INDEPENDENT OF TODAY'S FIXTURES ──
-    // The World Cup check above confirms xG data exists somewhere, but the
-    // World Cup is capped at 5 fixtures per scan and isn't representative of
-    // day-to-day scanning — the real question is whether genuine top-tier
-    // CLUB leagues have it, since that's what would actually matter for a
-    // scoped feature. It's currently the European off-season, so Premier
-    // League/La Liga/etc. won't appear in today's live fixture list for
-    // weeks — this check looks a team up directly instead of waiting for
-    // one to show up in today's scan. Runs once, ~5 calls total.
+    // Skips any league already in XG_COVERAGE_KNOWN (Premier League is now
+    // confirmed, so this run will move on to the next untested major
+    // instead of wasting calls re-confirming it). Expanded candidate pool so
+    // each future run makes progress on a league we don't have an answer for
+    // yet, rather than looping over the same ones forever.
     if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&!window.SE_DEBUG.xgCheckClubDone){
       window.SE_DEBUG.xgCheckClubDone=true;
       const DOMESTIC_LEAGUES_TO_TRY=[
         {id:39,name:'Premier League'},{id:140,name:'La Liga'},{id:135,name:'Serie A'},
-        {id:78,name:'Bundesliga'},{id:61,name:'Ligue 1'},
-      ];
+        {id:78,name:'Bundesliga'},{id:61,name:'Ligue 1'},{id:88,name:'Eredivisie'},
+        {id:71,name:'Brazil Série A'},{id:253,name:'MLS'},{id:307,name:'Saudi Pro League'},
+      ].filter(lg=>!(lg.id in XG_COVERAGE_KNOWN));
+      if(!DOMESTIC_LEAGUES_TO_TRY.length){
+        window.SE_DEBUG.xgCheckClub={note:'All major domestic leagues in the candidate list are already confirmed — see XG_COVERAGE_KNOWN. Nothing new to test.'};
+      } else {
       const seasonsToTry=[new Date().getFullYear(),new Date().getFullYear()-1,2024];
       try{
-        let foundTeam=null,foundLeagueName='';
+        let foundTeam=null,foundLeagueName='',foundLeagueId=null;
         outer:
         for(const lg of DOMESTIC_LEAGUES_TO_TRY){
           for(const season of seasonsToTry){
@@ -1964,6 +1982,7 @@ async function fetchDailyTips(){
             if(teamsRes.response&&teamsRes.response.length>0){
               foundTeam=teamsRes.response[0].team;
               foundLeagueName=lg.name+' (season '+season+')';
+              foundLeagueId=lg.id;
               break outer;
             }
           }
@@ -1977,6 +1996,7 @@ async function fetchDailyTips(){
             window.SE_DEBUG.xgCheckClub={
               testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
               testedLeague:foundLeagueName,
+              testedLeagueId:foundLeagueId,
               url:statsUrl,
               raw:statsRes
             };
@@ -1984,30 +2004,34 @@ async function fetchDailyTips(){
             window.SE_DEBUG.xgCheckClub={note:'Found '+foundTeam.name+' ('+foundLeagueName+') but no completed fixture to test against.'};
           }
         } else {
-          window.SE_DEBUG.xgCheckClub={note:'Could not find any team from a major domestic league to test — tried '+DOMESTIC_LEAGUES_TO_TRY.map(l=>l.name).join(', ')+'.'};
+          window.SE_DEBUG.xgCheckClub={note:'Could not find any team from an untested major domestic league — tried '+DOMESTIC_LEAGUES_TO_TRY.map(l=>l.name).join(', ')+'.'};
         }
       }catch(e){
         window.SE_DEBUG.xgCheckClub={note:'Domestic league xG check failed: '+e.message};
       }
+      }
     }
 
     // ── THIRD CHECK — MULTIPLE ACTUAL WHITELIST LEAGUES ───────────────────────
-    // Checks 1 and 2 confirmed xG data is real, but both tested leagues
-    // (World Cup, Premier League) get API-Football's best coverage — neither
-    // is representative of what actually fills up a normal day's scan.
-    // USL Championship already came back completely empty earlier (no stats
-    // of ANY kind, not just missing xG), which is a warning sign for lower
-    // tiers generally. Rather than testing just one more league, this checks
-    // FOUR genuinely representative ones spanning different confederations —
-    // a single result wouldn't be much more conclusive than the USL
-    // Championship result we already have. Uses today's actual fixtures, so
-    // no season-fallback dance is needed like Check 2 required.
+    // Skips any league already in XG_COVERAGE_KNOWN. Pulls from a wider pool
+    // of whitelist leagues than before, so once USL League Two/Ecuador/
+    // Estonia are confirmed (as they now are), future runs move on to
+    // genuinely new leagues — Tanzania, Bhutan, Lebanon, Georgia, Lithuania,
+    // Morocco, Kenya — rather than re-confirming what's already known.
+    // Tests whichever 4 of these are actually in today's fixture list.
     if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&!window.SE_DEBUG.xgCheckWhitelistDone){
       window.SE_DEBUG.xgCheckWhitelistDone=true;
-      const WHITELIST_LEAGUES_TO_CHECK=[256,243,567,328]; // USL League Two, Ecuador Liga Pro B, Tanzania, Estonia
-      const WHITELIST_LEAGUE_NAMES={256:'USL League Two',243:'Ecuador Liga Pro Serie B',567:'Tanzania Ligi kuu Bara',328:'Estonia Esiliiga A'};
+      const WHITELIST_LEAGUE_NAMES={
+        256:'USL League Two',243:'Ecuador Liga Pro Serie B',567:'Tanzania Ligi kuu Bara',
+        328:'Estonia Esiliiga A',1031:'Bhutan Premier League',390:'Lebanon League',
+        327:'Georgia Erovnuli Liga',361:'Lithuania 1 Lyga',200:'Morocco Botola Pro',
+        484:'Kenya Premier League',242:'Ecuador Liga Pro Serie A',
+      };
+      const candidateIds=Object.keys(WHITELIST_LEAGUE_NAMES).map(Number).filter(lid=>!(lid in XG_COVERAGE_KNOWN));
       window.SE_DEBUG.xgCheckWhitelist=[];
-      for(const lid of WHITELIST_LEAGUES_TO_CHECK){
+      let testedCount=0;
+      for(const lid of candidateIds){
+        if(testedCount>=4)break; // cap at 4 per run, same budget as before
         // Search allFixtures (whitelist-filtered, but NOT yet capped by
         // scanLimit) rather than toProcess — a diagnostic check shouldn't be
         // artificially constrained by the same processing budget that limits
@@ -2018,9 +2042,10 @@ async function fetchDailyTips(){
         // also block us from testing those leagues here.
         const fx=allFixtures.find(f=>f.league.id===lid);
         if(!fx){
-          window.SE_DEBUG.xgCheckWhitelist.push({league:WHITELIST_LEAGUE_NAMES[lid],note:'Not in today\'s fixture list — skipped.'});
+          window.SE_DEBUG.xgCheckWhitelist.push({league:WHITELIST_LEAGUE_NAMES[lid],note:'Not in today\'s fixture list — skipped, try again another day.'});
           continue;
         }
+        testedCount++;
         try{
           const lastFixtureRes=await afFetch('/fixtures?team='+fx.teams.home.id+'&last=1');
           const lastFixture=lastFixtureRes.response&&lastFixtureRes.response[0];
@@ -2032,6 +2057,7 @@ async function fetchDailyTips(){
             const hasAnyStats=!!(statsRes.response&&statsRes.response.length>0);
             window.SE_DEBUG.xgCheckWhitelist.push({
               league:fx.league.name,
+              leagueId:lid,
               testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
               hasAnyStats,hasXg
             });
