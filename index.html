@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1728,7 +1728,8 @@ function renderDebugPanel(){
     if(xg.note){
       dbgText+=xg.note;
     } else {
-      dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
+      dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n';
+      dbgText+='LEAGUE: '+(xg.testedLeague||'unknown')+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
       dbgText+='RAW RESPONSE:\n'+JSON.stringify(xg.raw,null,2).slice(0,3000);
       const rawStr=JSON.stringify(xg.raw).toLowerCase();
       const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
@@ -1860,6 +1861,46 @@ async function fetchDailyTips(){
       }
       return true;
     }).slice(0,scanLimit);
+
+    // ── TARGETED xG DIAGNOSTIC CHECK ──────────────────────────────────────────
+    // Runs BEFORE the main loop, independent of whatever fixture happens to be
+    // processed first. Last time, the check landed on USL Championship (a
+    // smaller league) and came back completely empty — which tells us that
+    // league likely has NO statistics coverage at all, not specifically that
+    // xG is missing. To get a conclusive answer we need to test a league we
+    // already have strong evidence is well-covered — World Cup fixtures have
+    // shown rich data every time we've checked this session, so it and the
+    // other traditional "big" leagues are tried first, in priority order.
+    if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&!window.SE_DEBUG.xgChecked){
+      const HIGH_CONFIDENCE_STATS_LEAGUES=[1,2,39,140,135,78,61]; // WC, UCL, EPL, La Liga, Serie A, Bundesliga, Ligue 1
+      let targetFixture=null, usedFallback=false;
+      for(const lid of HIGH_CONFIDENCE_STATS_LEAGUES){
+        targetFixture=toProcess.find(f=>f.league.id===lid);
+        if(targetFixture)break;
+      }
+      if(!targetFixture&&toProcess.length){targetFixture=toProcess[0];usedFallback=true;}
+      if(targetFixture){
+        window.SE_DEBUG.xgChecked=true;
+        try{
+          const lastFixtureRes=await afFetch('/fixtures?team='+targetFixture.teams.home.id+'&last=1');
+          const lastFixture=lastFixtureRes.response&&lastFixtureRes.response[0];
+          if(lastFixture&&lastFixture.fixture&&lastFixture.fixture.status.short==='FT'){
+            const statsUrl='/fixtures/statistics?fixture='+lastFixture.fixture.id;
+            const statsRes=await afFetch(statsUrl);
+            window.SE_DEBUG.xgCheck={
+              testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
+              testedLeague:targetFixture.league.name+(usedFallback?' — fallback, not a high-confidence-coverage league; treat an empty result with caution':' — chosen for known-good stats coverage'),
+              url:statsUrl,
+              raw:statsRes
+            };
+          } else {
+            window.SE_DEBUG.xgCheck={note:'No completed fixture found for '+targetFixture.teams.home.name+' to test against.'};
+          }
+        }catch(e){
+          window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
+        }
+      }
+    }
 
     // Warn if the majority of processable fixtures are from low-tier/unknown leagues
     const unknownInTop=toProcess.filter(f=>leagueTier(f.league.id)<=10).length;
