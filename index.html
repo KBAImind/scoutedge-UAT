@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1720,11 +1720,29 @@ function renderDebugPanel(){
   } else {
     dbgText+='\n(No fixture stats request was made this scan — either zero fixtures\npassed the bettable leagues filter, or the scan stopped before Step 2.)';
   }
-  // ── xG DIAGNOSTIC CHECK ────────────────────────────────────────────────────
-  // One-off check: does /fixtures/statistics contain any expected-goals field?
+  // ── xG DIAGNOSTIC CHECKS ───────────────────────────────────────────────────
+  // Check 1: international tournament (World Cup etc.) — confirms whether xG
+  // data exists anywhere at all.
   if(window.SE_DEBUG&&window.SE_DEBUG.xgCheck){
     const xg=window.SE_DEBUG.xgCheck;
-    dbgText+='\n\n══ xG DIAGNOSTIC CHECK (does API-Football have expected goals data?) ══\n';
+    dbgText+='\n\n══ xG CHECK 1 — INTERNATIONAL (does API-Football have expected goals data anywhere?) ══\n';
+    if(xg.note){
+      dbgText+=xg.note;
+    } else {
+      dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n';
+      dbgText+='LEAGUE: '+(xg.testedLeague||'unknown')+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
+      dbgText+='RAW RESPONSE:\n'+JSON.stringify(xg.raw,null,2).slice(0,3000);
+      const rawStr=JSON.stringify(xg.raw).toLowerCase();
+      const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
+      dbgText+='\n\n'+(hasXg?'✅ FOUND a field that looks like expected goals — see raw response above.':'❌ No expected-goals field found in this response.');
+    }
+  }
+  // Check 2: major domestic league — confirms whether xG coverage extends to
+  // the leagues that actually matter for day-to-day scanning, not just
+  // international tournaments (capped at 5 fixtures/scan).
+  if(window.SE_DEBUG&&window.SE_DEBUG.xgCheckClub){
+    const xg=window.SE_DEBUG.xgCheckClub;
+    dbgText+='\n\n══ xG CHECK 2 — MAJOR DOMESTIC LEAGUE (does club-level coverage extend here too?) ══\n';
     if(xg.note){
       dbgText+=xg.note;
     } else {
@@ -1899,6 +1917,58 @@ async function fetchDailyTips(){
         }catch(e){
           window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
         }
+      }
+    }
+
+    // ── SECOND CHECK — MAJOR DOMESTIC LEAGUE, INDEPENDENT OF TODAY'S FIXTURES ──
+    // The World Cup check above confirms xG data exists somewhere, but the
+    // World Cup is capped at 5 fixtures per scan and isn't representative of
+    // day-to-day scanning — the real question is whether genuine top-tier
+    // CLUB leagues have it, since that's what would actually matter for a
+    // scoped feature. It's currently the European off-season, so Premier
+    // League/La Liga/etc. won't appear in today's live fixture list for
+    // weeks — this check looks a team up directly instead of waiting for
+    // one to show up in today's scan. Runs once, ~5 calls total.
+    if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&!window.SE_DEBUG.xgCheckClubDone){
+      window.SE_DEBUG.xgCheckClubDone=true;
+      const DOMESTIC_LEAGUES_TO_TRY=[
+        {id:39,name:'Premier League'},{id:140,name:'La Liga'},{id:135,name:'Serie A'},
+        {id:78,name:'Bundesliga'},{id:61,name:'Ligue 1'},
+      ];
+      const seasonsToTry=[new Date().getFullYear(),new Date().getFullYear()-1,2024];
+      try{
+        let foundTeam=null,foundLeagueName='';
+        outer:
+        for(const lg of DOMESTIC_LEAGUES_TO_TRY){
+          for(const season of seasonsToTry){
+            const teamsRes=await afFetch('/teams?league='+lg.id+'&season='+season);
+            if(teamsRes.response&&teamsRes.response.length>0){
+              foundTeam=teamsRes.response[0].team;
+              foundLeagueName=lg.name+' (season '+season+')';
+              break outer;
+            }
+          }
+        }
+        if(foundTeam){
+          const lastFixtureRes=await afFetch('/fixtures?team='+foundTeam.id+'&last=1');
+          const lastFixture=lastFixtureRes.response&&lastFixtureRes.response[0];
+          if(lastFixture&&lastFixture.fixture&&lastFixture.fixture.status.short==='FT'){
+            const statsUrl='/fixtures/statistics?fixture='+lastFixture.fixture.id;
+            const statsRes=await afFetch(statsUrl);
+            window.SE_DEBUG.xgCheckClub={
+              testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
+              testedLeague:foundLeagueName,
+              url:statsUrl,
+              raw:statsRes
+            };
+          } else {
+            window.SE_DEBUG.xgCheckClub={note:'Found '+foundTeam.name+' ('+foundLeagueName+') but no completed fixture to test against.'};
+          }
+        } else {
+          window.SE_DEBUG.xgCheckClub={note:'Could not find any team from a major domestic league to test — tried '+DOMESTIC_LEAGUES_TO_TRY.map(l=>l.name).join(', ')+'.'};
+        }
+      }catch(e){
+        window.SE_DEBUG.xgCheckClub={note:'Domestic league xG check failed: '+e.message};
       }
     }
 
