@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">Test</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1288,10 +1288,14 @@ const RELIABLE_LEAGUES=new Set([
 const XG_COVERAGE_KNOWN={
   1:true,     // World Cup — confirmed via live debug (Paraguay vs France)
   39:true,    // Premier League — confirmed via live debug (Brighton vs Man Utd)
+  140:true,   // La Liga — confirmed via live debug (Valencia vs Barcelona)
+  242:true,   // Ecuador Liga Pro (top flight) — confirmed via live debug (Libertad vs Leones del Norte)
   255:false,  // USL Championship — confirmed via live debug (no stats at all)
   256:false,  // USL League Two — confirmed via live debug (has stats, no xG)
-  243:false,  // Ecuador Liga Pro Serie B — confirmed via live debug (no stats at all)
+  243:false,  // Ecuador Liga Pro Serie B — confirmed via live debug (no stats at all) — NOTE: the
+              // top-flight Liga Pro (242) DOES have coverage, so division matters even within one country
   328:false,  // Estonia Esiliiga A — confirmed via live debug (no stats at all)
+  390:false,  // Lebanon Premier League — confirmed via live debug (no stats at all)
 };
 
 const BLOCKED_LEAGUES=new Set([
@@ -1527,7 +1531,12 @@ const LEAGUE_TIERS={
   // ── EGYPT ──────────────────────────────────────────────────────────────────
   // ── MOROCCO ────────────────────────────────────────────────────────────────
   200:58,   // Botola Pro
-  268:58,   // (alternate Morocco ID)
+  268:58,   // CORRECTED: live debug confirms 268 is actually Uruguay's Primera
+            // División - Apertura, not "an alternate Morocco ID" as previously
+            // guessed — harmless since 268 was never added to the bet365
+            // whitelist (only 200 was), but the old comment was simply wrong.
+            // Uruguay wasn't confirmed on your original Bet365 sheet, so not
+            // added to the whitelist yet — flag if you want it checked.
   // ── ALGERIA ────────────────────────────────────────────────────────────────
   405:52,   // Ligue Professionnelle
   // ── TUNISIA ────────────────────────────────────────────────────────────────
@@ -1926,7 +1935,11 @@ async function fetchDailyTips(){
     // shown rich data every time we've checked this session, so it and the
     // other traditional "big" leagues are tried first, in priority order.
     if(window.SE_DEBUG_ENABLED&&window.SE_DEBUG&&!window.SE_DEBUG.xgChecked){
-      const HIGH_CONFIDENCE_STATS_LEAGUES=[1,2,39,140,135,78,61]; // WC, UCL, EPL, La Liga, Serie A, Bundesliga, Ligue 1
+      const HIGH_CONFIDENCE_STATS_LEAGUES=[1,2,39,140,135,78,61].filter(lid=>!(lid in XG_COVERAGE_KNOWN)); // WC, UCL, EPL, La Liga, Serie A, Bundesliga, Ligue 1
+      if(!HIGH_CONFIDENCE_STATS_LEAGUES.length){
+        window.SE_DEBUG.xgChecked=true;
+        window.SE_DEBUG.xgCheck={note:'All leagues in this candidate list are already confirmed — see XG_COVERAGE_KNOWN. Nothing new to test here.'};
+      } else {
       let targetFixture=null, usedFallback=false;
       for(const lid of HIGH_CONFIDENCE_STATS_LEAGUES){
         targetFixture=toProcess.find(f=>f.league.id===lid);
@@ -1953,6 +1966,7 @@ async function fetchDailyTips(){
         }catch(e){
           window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
         }
+      }
       }
     }
 
@@ -2056,16 +2070,21 @@ async function fetchDailyTips(){
             const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
             const hasAnyStats=!!(statsRes.response&&statsRes.response.length>0);
             window.SE_DEBUG.xgCheckWhitelist.push({
-              league:fx.league.name,
+              // Use our own country-qualified label, not the bare API name —
+              // several countries have leagues literally called "Premier
+              // League" (England, Lebanon, Zimbabwe, Bhutan...), and the raw
+              // API name alone caused a genuinely confusing result last time
+              // (Lebanon's league displaying as just "Premier League").
+              league:WHITELIST_LEAGUE_NAMES[lid]||fx.league.name,
               leagueId:lid,
               testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
               hasAnyStats,hasXg
             });
           } else {
-            window.SE_DEBUG.xgCheckWhitelist.push({league:fx.league.name,note:'No completed fixture found to test against.'});
+            window.SE_DEBUG.xgCheckWhitelist.push({league:WHITELIST_LEAGUE_NAMES[lid]||fx.league.name,note:'No completed fixture found to test against.'});
           }
         }catch(e){
-          window.SE_DEBUG.xgCheckWhitelist.push({league:fx.league.name,note:'Check failed: '+e.message});
+          window.SE_DEBUG.xgCheckWhitelist.push({league:WHITELIST_LEAGUE_NAMES[lid]||fx.league.name,note:'Check failed: '+e.message});
         }
       }
     }
