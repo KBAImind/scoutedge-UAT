@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1214,28 +1214,6 @@ async function verifyAfKey(){
   }catch(e){return{ok:false,msg:e.message};}
 }
 
-// Safely extract goal average from API-Football stats — handles all response shapes
-function extractGoalAvg(statsObj,side,context){
-  if(!statsObj||!statsObj.goals)return null;
-  const g=statsObj.goals;
-  const branch=side==='for'?g.for:g.against;
-  if(!branch)return null;
-  // Try average object first
-  if(branch.average){
-    const v=branch.average[context]||branch.average.total||branch.average.home||branch.average.away;
-    const n=parseFloat(v);
-    if(!isNaN(n)&&n>0)return n;
-  }
-  // Fallback: total / games played
-  if(branch.total){
-    const tot=branch.total[context]||branch.total.total;
-    const fp=statsObj.fixtures&&statsObj.fixtures.played;
-    const played=fp&&(fp[context]||fp.total);
-    if(tot!=null&&played>0)return parseFloat(tot)/parseFloat(played);
-  }
-  return null;
-}
-
 // Leagues known to have reliable stats on API-Football free tier
 // Used only to filter OUT leagues with no data — not to rank predictions
 const RELIABLE_LEAGUES=new Set([
@@ -1674,6 +1652,28 @@ function getEffectiveTier(f){
 function mHomeName(f){return f.teams.home.name;}
 function mAwayName(f){return f.teams.away.name;}
 
+// Properly checks for a genuinely populated xG value, not just the field
+// NAME appearing somewhere in the response. API-Football includes the
+// "expected_goals" field in the schema even when it has no data for that
+// match — its value is then explicitly null. A naive string search for
+// "expected_goals" matches that null case too, incorrectly reporting xG as
+// present. Bundesliga (Bayern vs Stuttgart, tested live) is a confirmed
+// real example: the field was there, the value was null, and the old
+// detection wrongly said "found". This checks each team's stats array for
+// an expected_goals entry with an actual non-null, non-empty value.
+function hasRealXgValue(statsRes){
+  if(!statsRes||!Array.isArray(statsRes.response))return false;
+  for(const teamBlock of statsRes.response){
+    if(!teamBlock||!Array.isArray(teamBlock.statistics))continue;
+    const entry=teamBlock.statistics.find(s=>s&&(s.type==='expected_goals'||s.type==='xG'));
+    if(entry&&entry.value!=null&&entry.value!==''){
+      const n=parseFloat(entry.value);
+      if(!isNaN(n))return true;
+    }
+  }
+  return false;
+}
+
 // Robust stat extractor — handles all known API-Football response shapes
 function extractGoalAvg(statsObj,side,context){
   if(!statsObj||!statsObj.goals)return null;
@@ -1759,9 +1759,8 @@ function renderDebugPanel(){
       dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n';
       dbgText+='LEAGUE: '+(xg.testedLeague||'unknown')+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
       dbgText+='RAW RESPONSE:\n'+JSON.stringify(xg.raw,null,2).slice(0,3000);
-      const rawStr=JSON.stringify(xg.raw).toLowerCase();
-      const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
-      dbgText+='\n\n'+(hasXg?'✅ FOUND a field that looks like expected goals — see raw response above.':'❌ No expected-goals field found in this response.');
+      const hasXg=hasRealXgValue(xg.raw);
+      dbgText+='\n\n'+(hasXg?'✅ FOUND a genuinely populated expected-goals value — see raw response above.':'❌ No usable expected-goals value in this response (the field may exist but be null).');
     }
   }
   // Check 2: major domestic league — confirms whether xG coverage extends to
@@ -1776,9 +1775,8 @@ function renderDebugPanel(){
       dbgText+='TESTED AGAINST COMPLETED FIXTURE: '+xg.testedFixture+'\n';
       dbgText+='LEAGUE: '+(xg.testedLeague||'unknown')+'\n\nREQUEST URL:\n'+xg.url+'\n\n';
       dbgText+='RAW RESPONSE:\n'+JSON.stringify(xg.raw,null,2).slice(0,3000);
-      const rawStr=JSON.stringify(xg.raw).toLowerCase();
-      const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
-      dbgText+='\n\n'+(hasXg?'✅ FOUND a field that looks like expected goals — see raw response above.':'❌ No expected-goals field found in this response.');
+      const hasXg=hasRealXgValue(xg.raw);
+      dbgText+='\n\n'+(hasXg?'✅ FOUND a genuinely populated expected-goals value — see raw response above.':'❌ No usable expected-goals value in this response (the field may exist but be null).');
     }
   }
   // Check 3: several leagues that actually make up this whitelist's daily
@@ -1954,7 +1952,22 @@ async function fetchDailyTips(){
         // always tier 100, sorted first) even when World Cup is already
         // confirmed. Search for the first fixture from any UNCONFIRMED
         // league instead, so the fallback actually makes progress too.
-        targetFixture=toProcess.find(f=>!(f.league.id in XG_COVERAGE_KNOWN));
+        //
+        // Searches allFixtures (not toProcess) sorted by TRUE prestige tier
+        // (not the qualifying-round-discounted effective tier toProcess
+        // uses for real predictions). Confirmed via live debug: with Europa
+        // League and Conference League currently in qualifying rounds, their
+        // EFFECTIVE tier gets discounted to 25 for processing-order purposes
+        // — correctly deprioritising thin-data qualifiers for the real scan
+        // — but that same discount meant this fallback picked a Finnish
+        // third-tier match (true tier 28) over Europa League (true tier 92)
+        // just because it sorted higher in the discounted order. For THIS
+        // diagnostic specifically we want genuine prestige order, so a
+        // meaningful competition gets tested even mid-qualifying-round.
+        const unconfirmedByTrueTier=[...allFixtures]
+          .filter(f=>!(f.league.id in XG_COVERAGE_KNOWN))
+          .sort((a,b)=>leagueTier(b.league.id)-leagueTier(a.league.id));
+        targetFixture=unconfirmedByTrueTier[0]||null;
         usedFallback=true;
       }
       if(targetFixture){
@@ -1977,6 +1990,14 @@ async function fetchDailyTips(){
         }catch(e){
           window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
         }
+      } else {
+        // Every league with a fixture today is already in XG_COVERAGE_KNOWN
+        // either way — genuinely nothing new to test. Must still set
+        // xgChecked so this doesn't silently retry every scan, and the note
+        // explains why, rather than leaving the debug panel blank with no
+        // explanation.
+        window.SE_DEBUG.xgChecked=true;
+        window.SE_DEBUG.xgCheck={note:'Every league with a fixture today is already confirmed one way or the other — see XG_COVERAGE_KNOWN. Nothing new to test today.'};
       }
       }
     }
@@ -2061,6 +2082,12 @@ async function fetchDailyTips(){
       };
       const candidateIds=Object.keys(WHITELIST_LEAGUE_NAMES).map(Number).filter(lid=>!(lid in XG_COVERAGE_KNOWN));
       window.SE_DEBUG.xgCheckWhitelist=[];
+      if(!candidateIds.length){
+        // Matches Check 1's pattern — explain why nothing ran, rather than
+        // the whole section silently vanishing once every candidate in
+        // this pool eventually gets confirmed.
+        window.SE_DEBUG.xgCheckWhitelist.push({league:'(all candidates)',note:'Every league in this pool is already confirmed one way or the other — see XG_COVERAGE_KNOWN.'});
+      }
       let testedCount=0;
       for(const lid of candidateIds){
         if(testedCount>=4)break; // cap at 4 per run, same budget as before
@@ -2084,8 +2111,7 @@ async function fetchDailyTips(){
           if(lastFixture&&lastFixture.fixture&&lastFixture.fixture.status.short==='FT'){
             const statsUrl='/fixtures/statistics?fixture='+lastFixture.fixture.id;
             const statsRes=await afFetch(statsUrl);
-            const rawStr=JSON.stringify(statsRes).toLowerCase();
-            const hasXg=rawStr.includes('expected_goals')||rawStr.includes('"xg"')||rawStr.includes('expectedgoals');
+            const hasXg=hasRealXgValue(statsRes);
             const hasAnyStats=!!(statsRes.response&&statsRes.response.length>0);
             window.SE_DEBUG.xgCheckWhitelist.push({
               // Use our own country-qualified label, not the bare API name —
@@ -2310,32 +2336,6 @@ async function fetchDailyTips(){
               window.SE_DEBUG.homeUrl=hUrl;
               window.SE_DEBUG.homeRaw=hs;
               window.SE_DEBUG.awayRaw=as;
-            }
-            // ── ONE-OFF xG DIAGNOSTIC CHECK ──────────────────────────────────
-            // Checks whether API-Football's per-match statistics endpoint
-            // contains any expected-goals field, for a completed fixture
-            // (today's fixture hasn't been played yet, so it has no match
-            // stats — we need a recently FINISHED game to test against).
-            // Runs once per scan only, 2 extra calls total, not per-fixture.
-            if(window.SE_DEBUG&&!window.SE_DEBUG.xgChecked){
-              window.SE_DEBUG.xgChecked=true;
-              try{
-                const lastFixtureRes=await afFetch('/fixtures?team='+f.teams.home.id+'&last=1');
-                const lastFixture=lastFixtureRes.response&&lastFixtureRes.response[0];
-                if(lastFixture&&lastFixture.fixture&&lastFixture.fixture.status.short==='FT'){
-                  const statsUrl='/fixtures/statistics?fixture='+lastFixture.fixture.id;
-                  const statsRes=await afFetch(statsUrl);
-                  window.SE_DEBUG.xgCheck={
-                    testedFixture:lastFixture.teams.home.name+' vs '+lastFixture.teams.away.name+' ('+lastFixture.fixture.date.slice(0,10)+')',
-                    url:statsUrl,
-                    raw:statsRes
-                  };
-                } else {
-                  window.SE_DEBUG.xgCheck={note:'No completed fixture found for '+f.teams.home.name+' to test against.'};
-                }
-              }catch(e){
-                window.SE_DEBUG.xgCheck={note:'xG check failed: '+e.message};
-              }
             }
 
             const hPlayed=hs.response&&hs.response.fixtures&&hs.response.fixtures.played;
