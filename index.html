@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1289,6 +1289,7 @@ const XG_COVERAGE_KNOWN={
   1:true,     // World Cup — confirmed via live debug (Paraguay vs France)
   39:true,    // Premier League — confirmed via live debug (Brighton vs Man Utd)
   140:true,   // La Liga — confirmed via live debug (Valencia vs Barcelona)
+  135:true,   // Serie A — confirmed via live debug (Lazio vs Pisa)
   242:true,   // Ecuador Liga Pro (top flight) — confirmed via live debug (Libertad vs Leones del Norte)
   255:false,  // USL Championship — confirmed via live debug (no stats at all)
   256:false,  // USL League Two — confirmed via live debug (has stats, no xG)
@@ -1945,7 +1946,17 @@ async function fetchDailyTips(){
         targetFixture=toProcess.find(f=>f.league.id===lid);
         if(targetFixture)break;
       }
-      if(!targetFixture&&toProcess.length){targetFixture=toProcess[0];usedFallback=true;}
+      if(!targetFixture&&toProcess.length){
+        // The fallback needs the SAME "skip known leagues" filtering as the
+        // priority list above — otherwise, when none of the priority
+        // leagues have a fixture today, this falls through to blindly
+        // grabbing toProcess[0], which is almost always World Cup (it's
+        // always tier 100, sorted first) even when World Cup is already
+        // confirmed. Search for the first fixture from any UNCONFIRMED
+        // league instead, so the fallback actually makes progress too.
+        targetFixture=toProcess.find(f=>!(f.league.id in XG_COVERAGE_KNOWN));
+        usedFallback=true;
+      }
       if(targetFixture){
         window.SE_DEBUG.xgChecked=true;
         try{
@@ -2040,6 +2051,13 @@ async function fetchDailyTips(){
         328:'Estonia Esiliiga A',1031:'Bhutan Premier League',390:'Lebanon League',
         327:'Georgia Erovnuli Liga',361:'Lithuania 1 Lyga',200:'Morocco Botola Pro',
         484:'Kenya Premier League',242:'Ecuador Liga Pro Serie A',
+        // Added after Morocco/Georgia/Lithuania/Kenya/Tanzania/Bhutan struck
+        // out with "not in today's list" three runs in a row — these four
+        // are confirmed in the actual bet365 whitelist AND have been showing
+        // up in recent League Inspector data, so there's a real chance of
+        // testing something new instead of repeatedly striking out.
+        169:'China Super League',357:'Ireland Premier Division',
+        358:'Ireland First Division',244:'Finland Veikkausliiga',
       };
       const candidateIds=Object.keys(WHITELIST_LEAGUE_NAMES).map(Number).filter(lid=>!(lid in XG_COVERAGE_KNOWN));
       window.SE_DEBUG.xgCheckWhitelist=[];
