@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2844,7 +2844,20 @@ function buildTipPrediction(md,injuryMap){
   const totalXG=lHome+lAway;
   const xgPenalty=totalXG>2.8?Math.max(0.5,1-(totalXG-2.8)*0.1):1.0; // penalty above 2.8 xG
 
-  const rawConfidence=((sig1*0.45)+(sig2*0.35)+(sig3*0.20))*xgPenalty;
+  // Low-scoring overconfidence penalty — added after analysing 127 logged
+  // results. Predictions with very low combined expected goals (0-0/1-0/0-1
+  // type scores) were claiming 20%+ stated probability but hitting only
+  // ~14% of the time in practice — worse than predictions the model rated
+  // under 10% confidence, which hit ~55%. This is a mechanical property of
+  // Poisson at low λ combined with the Dixon-Coles correction, both of
+  // which concentrate extra probability onto 0-0/1-0/0-1/1-1 specifically —
+  // that concentration reflects the maths, not genuine predictive strength,
+  // so it needs an explicit counter-penalty, mirroring the existing
+  // high-scoring penalty above but in the opposite direction. Floor and
+  // slope match the existing penalty for consistency.
+  const lowGoalsPenalty=totalXG<1.5?Math.max(0.5,totalXG/1.5):1.0; // penalty below 1.5 combined xG
+
+  const rawConfidence=((sig1*0.45)+(sig2*0.35)+(sig3*0.20))*xgPenalty*lowGoalsPenalty;
   const confidence=rawConfidence*sampleReliability;
 
   // Proximity score kept for display purposes only (shown in detail panel)
@@ -2887,6 +2900,7 @@ function buildTipPrediction(md,injuryMap){
     +'\n  Outcome certainty: '+(maxOutcome*100).toFixed(1)+'% → '+(sig2*100).toFixed(1)+'% normalised (signal 2, weight 35%)'
     +'\n  Dominance ratio: '+dominanceRatio.toFixed(2)+'x → '+(sig3*100).toFixed(1)+'% normalised (signal 3, weight 20%)'
     +(xgPenalty<1?'\n  Total xG penalty: '+totalXG.toFixed(1)+' xG → '+((1-xgPenalty)*100).toFixed(0)+'% penalty applied':'' )
+    +(lowGoalsPenalty<1?'\n  Low-scoring overconfidence penalty: '+totalXG.toFixed(1)+' xG → '+((1-lowGoalsPenalty)*100).toFixed(0)+'% penalty applied (very low-scoring predictions have proven less reliable than their raw probability suggests)':'' )
     +'\n  Combined confidence: '+(rawConfidence*100).toFixed(1)+'%'+(sampleReliability<1?' (penalised for sample size)':'')
     +'\n  Predicted via: '+(aboveThreshold.length>0?'above-8% threshold ('+aboveThreshold.length+' scorelines qualified)':'peak fallback — no scoreline cleared 8%')
     +(injuryTags.length?'\n\nInjury/doubt flags:\n  '+injuryTags.join('\n  '):'')
