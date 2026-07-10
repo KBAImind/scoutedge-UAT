@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -340,6 +340,7 @@ th{color:var(--muted);font-weight:700}
         <button class="acc-tab" onclick="setAccuracyTab('max')" id="accTab-max" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--dim)">Max Accuracy</button>
         <button class="acc-tab" onclick="setAccuracyTab('high')" id="accTab-high" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--dim)">High</button>
         <button class="acc-tab" onclick="setAccuracyTab('med')" id="accTab-med" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--dim)">Medium</button>
+        <button class="acc-tab" onclick="setAccuracyTab('low')" id="accTab-low" style="flex:1;padding:5px 8px;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;background:transparent;color:var(--dim)">Low</button>
       </div>
       <div id="accuracyStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px"></div>
       <div id="accuracyLog" style="max-height:320px;overflow-y:auto;margin-bottom:12px"></div>
@@ -3160,10 +3161,24 @@ function parseScore(s){
 }
 function getResult(h,a){return h>a?'H':h===a?'D':'A';}
 
+// Format an entry's kickoff timestamp as local HH:MM. Manual entries and
+// auto entries logged before the ko field existed show a dash — the results
+// fetch and re-scans backfill ko for pending entries over time.
+function koTime(e){
+  if(!e||!e.ko)return '\u2014';
+  try{
+    const d=new Date(e.ko);
+    if(isNaN(d.getTime()))return '\u2014';
+    return d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  }catch(x){return '\u2014';}
+}
+
 function confLabel(c){
   if(c==='max')return '<span style="background:var(--bg3);color:var(--accent);font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600">Max</span>';
   if(c==='high')return '<span style="background:rgba(0,200,100,0.15);color:#0c6;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600">High</span>';
   if(c==='med')return '<span style="background:rgba(255,180,0,0.15);color:#fa0;font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600">Med</span>';
+  if(c==='low')return '<span style="background:rgba(150,150,170,0.12);color:var(--dim);font-size:9px;padding:1px 5px;border-radius:8px;font-weight:600">Low</span>';
+  // 'any' — legacy value from the manual form's "Show all" option only
   return '<span style="background:var(--bg2);color:var(--dim);font-size:9px;padding:1px 5px;border-radius:8px">Any</span>';
 }
 
@@ -3295,7 +3310,7 @@ async function autoLogPredictions(tips){
       // fresher data, the newer prediction is the one you'd actually act
       // on, so that's the one worth calibrating against.
       if(existing.actual)continue;
-      Object.assign(existing,{match:matchStr,pred:predStr,prob:probStr,conf:t.confTier||existing.conf,picks,dateISO,date:dateStr});
+      Object.assign(existing,{match:matchStr,pred:predStr,prob:probStr,conf:t.confTier||existing.conf,picks,dateISO,date:dateStr,ko:t.ko||existing.ko});
       changed=true;
     } else {
       accEntries.unshift({
@@ -3303,6 +3318,7 @@ async function autoLogPredictions(tips){
         fixtureId:t.fixtureId,
         source:'auto',
         date:dateStr,dateISO,
+        ko:t.ko||null,
         match:matchStr,
         pred:predStr,actual:'',
         conf:t.confTier||'med',prob:probStr,
@@ -3334,6 +3350,8 @@ async function fetchPendingResults(){
     if(!FINISHED.has(st))return false;
     const entry=accEntries.find(e=>e.fixtureId===fx.fixture.id);
     if(!entry||entry.actual)return false;
+    // Backfill kickoff time for entries logged before the ko field existed
+    if(!entry.ko&&fx.fixture.date)entry.ko=fx.fixture.date;
     // Prefer the 90-minute (fulltime) score — correct-score markets settle
     // on 90 minutes, and goals.home/away includes extra time for AET games.
     const ft=fx.score&&fx.score.fulltime;
@@ -3448,10 +3466,10 @@ async function renderAccuracyTracker(){
 
   // Update tab labels with counts — settled entries only
   const settledAll=accEntries.filter(e=>!isPendingEntry(e));
-  const tabCounts={all:settledAll.length,max:settledAll.filter(e=>e.conf==='max').length,high:settledAll.filter(e=>e.conf==='high').length,med:settledAll.filter(e=>e.conf==='med').length};
-  ['all','max','high','med'].forEach(t=>{
+  const tabCounts={all:settledAll.length,max:settledAll.filter(e=>e.conf==='max').length,high:settledAll.filter(e=>e.conf==='high').length,med:settledAll.filter(e=>e.conf==='med').length,low:settledAll.filter(e=>e.conf==='low').length};
+  ['all','max','high','med','low'].forEach(t=>{
     const el=document.getElementById('accTab-'+t);
-    if(el){const labels={all:'All',max:'Max',high:'High',med:'Medium'};el.textContent=labels[t]+' ('+tabCounts[t]+')';}
+    if(el){const labels={all:'All',max:'Max',high:'High',med:'Medium',low:'Low'};el.textContent=labels[t]+' ('+tabCounts[t]+')';}
   });
 
   const total=settledFiltered.length;
@@ -3492,15 +3510,16 @@ async function renderAccuracyTracker(){
     return;
   }
 
-  const headerCols='<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:4px 6px;font-size:10px;color:var(--dim);font-weight:600;border-bottom:1px solid var(--border);margin-bottom:4px"><span>Date</span><span>Match</span><span>Conf</span><span>Predicted</span><span>Actual</span><span>Result</span><span>Pick</span><span></span><span></span></div>';
+  const headerCols='<div style="display:grid;grid-template-columns:55px 36px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:4px 6px;font-size:10px;color:var(--dim);font-weight:600;border-bottom:1px solid var(--border);margin-bottom:4px"><span>Date</span><span>KO</span><span>Match</span><span>Conf</span><span>Predicted</span><span>Actual</span><span>Result</span><span>Pick</span><span></span><span></span></div>';
 
   // Pending rows — dimmed, awaiting a result. Edit still works (manual
   // settle for anything the auto-fetch can't resolve, e.g. abandoned or
   // awarded games); delete works too.
   const pendingRows=pendingFiltered.map(e=>{
     if(accEditId===e.id){
-      return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
+      return '<div style="display:grid;grid-template-columns:55px 36px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
         +'<input type="date" id="edit-date-'+e.id+'" value="'+(e.dateISO||'')+'" style="font-size:9px;padding:2px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
+        +'<span style="font-size:10px;color:var(--dim)">'+koTime(e)+'</span>'
         +'<input id="edit-match-'+e.id+'" value="'+e.match.replace(/"/g,'&quot;')+'" style="font-size:11px;padding:3px 5px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
         +'<span>'+confLabel(e.conf)+'</span>'
         +'<div style="display:flex;gap:3px"><input id="edit-pred-'+e.id+'" value="'+e.pred+'" style="width:45px;font-size:11px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text)"><input id="edit-prob-'+e.id+'" value="'+(e.prob||'')+'" placeholder="%" style="width:38px;font-size:10px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim)"></div>'
@@ -3511,8 +3530,9 @@ async function renderAccuracyTracker(){
         +'<button onclick="cancelEdit()" style="padding:3px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:10px;cursor:pointer">Cancel</button>'
         +'</div>';
     }
-    return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:5px 6px;align-items:center;border-radius:5px;margin-bottom:2px;opacity:0.65">'
+    return '<div style="display:grid;grid-template-columns:55px 36px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:5px 6px;align-items:center;border-radius:5px;margin-bottom:2px;opacity:0.65">'
       +'<span style="font-size:10px;color:var(--dim)">'+e.date+'</span>'
+      +'<span style="font-size:10px;color:var(--dim)">'+koTime(e)+'</span>'
       +'<span style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+e.match+'">'+e.match+'</span>'
       +'<span>'+confLabel(e.conf)+'</span>'
       +'<span style="font-size:11px;color:var(--dim)">'+e.pred+(e.prob?' <span style="font-size:9px">('+e.prob+')</span>':'')+'</span>'
@@ -3528,8 +3548,9 @@ async function renderAccuracyTracker(){
     const exact=e.exactHit?'\u2705':'\u274c';
     const result=e.resultHit?'🟢':'🔴';
     if(accEditId===e.id){
-      return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
+      return '<div style="display:grid;grid-template-columns:55px 36px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:6px;background:var(--bg2);border-radius:6px;border:1px solid var(--accent);align-items:center;margin-bottom:3px">'
         +'<input type="date" id="edit-date-'+e.id+'" value="'+(e.dateISO||'')+'" style="font-size:9px;padding:2px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
+        +'<span style="font-size:10px;color:var(--dim)">'+koTime(e)+'</span>'
         +'<input id="edit-match-'+e.id+'" value="'+e.match.replace(/"/g,'&quot;')+'" style="font-size:11px;padding:3px 5px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);width:100%">'
         +'<span>'+confLabel(e.conf)+'</span>'
         +'<div style="display:flex;gap:3px"><input id="edit-pred-'+e.id+'" value="'+e.pred+'" style="width:45px;font-size:11px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text)"><input id="edit-prob-'+e.id+'" value="'+(e.prob||'')+'" placeholder="%" style="width:38px;font-size:10px;padding:3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim)"></div>'
@@ -3540,8 +3561,9 @@ async function renderAccuracyTracker(){
         +'<button onclick="cancelEdit()" style="padding:3px 6px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:10px;cursor:pointer">Cancel</button>'
         +'</div>';
     }
-    return '<div style="display:grid;grid-template-columns:55px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:5px 6px;align-items:center;border-radius:5px;margin-bottom:2px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'transparent\'">'
+    return '<div style="display:grid;grid-template-columns:55px 36px 1fr 38px 90px 55px 55px 38px 42px 60px;gap:5px;padding:5px 6px;align-items:center;border-radius:5px;margin-bottom:2px" onmouseover="this.style.background=\'var(--bg2)\'" onmouseout="this.style.background=\'transparent\'">'
       +'<span style="font-size:10px;color:var(--dim)">'+e.date+'</span>'
+      +'<span style="font-size:10px;color:var(--dim)">'+koTime(e)+'</span>'
       +'<span style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+e.match+'">'+e.match+'</span>'
       +'<span>'+confLabel(e.conf)+'</span>'
       +'<span style="font-size:11px;color:var(--dim)">'+e.pred+(e.prob?' <span style="font-size:9px">('+e.prob+')</span>':'')+'</span>'
@@ -3659,10 +3681,10 @@ async function copyToClipboardWithFeedback(text,btnId){
   }
 }
 
-const ACC_CSV_HEADER=['Date','Match','Predicted','Actual','Confidence','Probability','Pick','Exact Hit','Result Hit','Goal Diff','Source'];
+const ACC_CSV_HEADER=['Date','Kickoff','Match','Predicted','Actual','Confidence','Probability','Pick','Exact Hit','Result Hit','Goal Diff','Source'];
 function accEntriesToRows(entries){
   const pickText={0:'Miss',1:'1st',2:'2nd',3:'3rd',4:'4th',5:'5th'};
-  return entries.map(e=>[e.date,e.match,e.pred,e.actual,e.conf||'',e.prob||'',pickText[e.pick]||e.pick||'',e.exactHit?'Yes':'No',e.resultHit?'Yes':'No',e.goalDiff!=null?e.goalDiff:'',e.fixtureId?'auto':'manual']);
+  return entries.map(e=>[e.date,e.ko?koTime(e):'',e.match,e.pred,e.actual,e.conf||'',e.prob||'',pickText[e.pick]||e.pick||'',e.exactHit?'Yes':'No',e.resultHit?'Yes':'No',e.goalDiff!=null?e.goalDiff:'',e.fixtureId?'auto':'manual']);
 }
 function copyAccuracyCSV(){
   const entries=window.SE_LAST_FILTERED_ENTRIES||[];
