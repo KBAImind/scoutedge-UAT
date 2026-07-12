@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">UAT</span>
+    <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -2549,7 +2549,20 @@ async function fetchDailyTips(){
     // one bucket regardless of which filter you run.
     predictions=predictions.map(p=>{
       const totalXG=p.lHome+p.lAway;
-      const isMax=totalXG<2.5&&(p.dominanceRatio||1)>1.2;
+      // Max tier previously bypassed the confidence score entirely — it was
+      // assigned on totalXG<2.5 AND dominance>1.2 alone, which meant the v22
+      // low-scoring penalty (which suppresses CONFIDENCE) never touched it.
+      // Ultra-low-xG games are exactly the ones that pass both gates
+      // trivially: 0.5 total xG is under 2.5, and Poisson at low lambda
+      // concentrates so much probability on 0-0/1-0 that dominance inflates
+      // too. Live data confirmed it: in the first 3 days of auto-logging,
+      // all four 20%+ probability predictions (avg 0.5 predicted total
+      // goals) landed in Max/High and all four missed — the same signature
+      // as the original 127-game audit. Fix: Max now also requires
+      // totalXG>=1.5, aligned with the penalty threshold — if the penalty
+      // says "don't trust this range", the top tier shouldn't be reachable
+      // from inside it.
+      const isMax=totalXG<2.5&&totalXG>=1.5&&(p.dominanceRatio||1)>1.2;
       const isHigh=p.confidence>0.45;
       const isMed=p.confidence>0.28;
       const confTier=isMax?'max':isHigh?'high':isMed?'med':'low';
