@@ -248,7 +248,7 @@ th{color:var(--muted);font-weight:700}
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
     <span class="badge">v6.8.3</span>
-    <span class="badge badge-live" id="liveBadge">TEST</span>
+    <span class="badge badge-live" id="liveBadge">UAT</span>
   </div>
   <div class="tabs">
     <button class="tab" onclick="switchTab('tips',this)">🔥 Daily Tips</button>
@@ -1740,6 +1740,16 @@ function renderDebugPanel(){
     const flag=l.tier<=10?' ⚠️ UNKNOWN ID':l.tier<=30?' ↓ low tier':'';
     dbgText+=tierStr+' │ '+idStr+' │ '+countStr+' │ '+l.name+' ('+l.country+')'+flag+'\n';
   });
+  // Tier distribution of everything the last scan computed — makes "why
+  // did my confidence filter return nothing?" answerable from the log
+  // alone: if predictions exist but a strict tier shows 0, the scan worked
+  // and the tier bar simply was not cleared.
+  if(window.SE_DEBUG&&window.SE_DEBUG.tierDist){
+    const td=window.SE_DEBUG.tierDist;
+    dbgText+='\n══ TIER DISTRIBUTION (this scan) ══\n';
+    dbgText+='Filter mode: '+td.filterMode+' \u00b7 predictions computed: '+td.computed+'\n';
+    dbgText+='Max: '+td.counts.max+' \u00b7 High: '+td.counts.high+' \u00b7 Medium: '+td.counts.med+' \u00b7 Low: '+td.counts.low+'\n';
+  }
   if(window.SE_DEBUG&&window.SE_DEBUG.captured){
     const dbg=window.SE_DEBUG;
     dbgText+='\n══ FIXTURE STAT REQUEST DEBUG ══\n';
@@ -2569,6 +2579,13 @@ async function fetchDailyTips(){
       return{...p,confTier};
     });
 
+    // Tier distribution — recorded for the debug panel and the empty-state
+    // message, so "why did my filter return nothing?" is answerable at a
+    // glance instead of needing comparison scans across every filter.
+    const tierDist={max:0,high:0,med:0,low:0};
+    predictions.forEach(p=>{if(tierDist[p.confTier]!=null)tierDist[p.confTier]++;});
+    if(window.SE_DEBUG)window.SE_DEBUG.tierDist={counts:tierDist,filterMode:cf,computed:predictions.length};
+
     // Apply confidence filter — each mode now shows ONLY fixtures assigned
     // to that exact tier, not "this tier or better". "any" (Show All) shows
     // everything including the 'low' tier that doesn't qualify for a badge.
@@ -2591,20 +2608,20 @@ async function fetchDailyTips(){
     stopScanTimer(true);
     if(!top10.length){
       const noStats=toProcess.length-predictions.length;
-      const filtered=predictions.length;
+      const tierNames={max:'Maximum Accuracy',high:'High Only',med:'Medium',any:'Show All'};
       let msg='';
-      if(cf==='max'&&filtered===0&&predictions.length===0){
-        msg='No fixtures passed the Maximum Accuracy filter today (requires total xG < 2.5 and strong dominance ratio). '
-          +(noStats>0?noStats+' fixture'+(noStats>1?'s':'')+' had no API stats. ':'')
-          +'Try switching to High Only or Medium to see more results.';
-      } else if(filtered>0&&noStats===0){
-        msg='Found '+filtered+' fixture'+(filtered>1?'s':'')+' with stats but all were filtered out by your confidence setting ('+(cf==='max'?'Maximum Accuracy':cf==='high'?'High Only':'Medium')+').'
-          +' Try a lower confidence level or check back when more fixtures are scheduled.';
+      if(predictions.length===0){
+        msg='Processed '+toProcess.length+' fixture'+(toProcess.length!==1?'s':'')+' but none produced a usable prediction'
+          +(noStats>0?' \u2014 '+noStats+' had no usable stats from the API':'')
+          +'. Try again closer to kick-off, or run the debugger for details.';
       } else {
-        msg='Processed '+toProcess.length+' fixture'+(toProcess.length>1?'s':'')+'. '
-          +(noStats>0?noStats+' had no usable stats from the API. ':'')
-          +(filtered>0?filtered+' passed stats but were filtered by confidence setting. ':'')
-          +'Try \'Show All\' or check back closer to kick-off.';
+        // The scan worked; the tier bar just was not cleared. Say exactly
+        // what WAS computed so the user does not have to run comparison
+        // scans across every filter to find out where the games went.
+        msg='The scan worked \u2014 '+predictions.length+' prediction'+(predictions.length!==1?'s':'')+' computed, but none landed in the '+(tierNames[cf]||cf)+' tier. '
+          +'Tier breakdown today: '+tierDist.max+' Max \u00b7 '+tierDist.high+' High \u00b7 '+tierDist.med+' Medium \u00b7 '+tierDist.low+' Low. '
+          +'An empty strict tier means the bar was not cleared today, not that the scan failed. Switch the confidence filter to see the games that were found.'
+          +(noStats>0?' ('+noStats+' fixture'+(noStats>1?'s':'')+' had no API stats.)':'');
       }
       document.getElementById('tipsErr').textContent=msg;
       document.getElementById('tipsEmpty').style.display='block';
