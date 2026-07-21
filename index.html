@@ -247,7 +247,7 @@ th{color:var(--muted);font-weight:700}
   <div class="header-top">
     <span class="logo-icon">◈</span>
     <span class="logo-text">ScoutEdge</span>
-    <span class="badge">v6.8.3</span>
+    <span class="badge">v6.8.4</span>
     <span class="badge badge-live" id="liveBadge">TEST</span>
   </div>
   <div class="tabs">
@@ -1147,8 +1147,15 @@ async function afFetch(ep,retryCount=0){
 
   const targetUrl='https://v3.football.api-sports.io'+ep;
   const proxiedUrl=getCorsProxy()+encodeURIComponent(targetUrl);
+  // Hard 15s timeout on every request. Browser fetch has NO default
+  // timeout — a stalled proxy connection can hang for minutes, which froze
+  // any sequential await loop (results checking, scans) on one wedged call.
+  // AbortController turns a silent hang into a catchable error.
+  const _ctrl=new AbortController();
+  const _tmo=setTimeout(()=>_ctrl.abort(),15000);
   try{
-    const res=await fetch(proxiedUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af}});
+    const res=await fetch(proxiedUrl,{method:'GET',headers:{'x-apisports-key':KEYS.af},signal:_ctrl.signal});
+    clearTimeout(_tmo);
     // Handle HTTP 429 — could be from API-Football OR the CORS proxy itself.
     // On first 429, try switching to the backup proxy before backing off.
     if(res.status===429){
@@ -1182,7 +1189,9 @@ async function afFetch(ep,retryCount=0){
     }
     return d;
   }catch(e){
+    clearTimeout(_tmo);
     if(e instanceof SECancelled||e.name==='SECancelled')throw e;
+    if(e.name==='AbortError')throw new Error('Could not reach API-Football: request timed out after 15s');
     throw new Error('Could not reach API-Football: '+e.message);
   }
 }
@@ -3406,15 +3415,45 @@ async function autoLogPredictions(tips){
 
 async function fetchPendingResults(){
   const btn=document.getElementById('fetchResultsBtn');
-  if(!accEntries.length)accEntries=await fetchAccuracyEntries();
+  // A cancelled Daily Tips scan leaves tipsCancelled=true until the next
+  // scan starts — and afFetch throws SECancelled on every call while it is
+  // set, which silently no-ops this entire feature. Reset it here unless a
+  // scan is genuinely running right now.
+  if(typeof tipsRunning==='undefined'||!tipsRunning)tipsCancelled=false;
+  const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timed out')),ms))]);
+  if(!accEntries.length)accEntries=await withTimeout(fetchAccuracyEntries(),10000).catch(()=>[]);
   const pending=accEntries.filter(isPendingEntry);
   if(!pending.length){
     if(btn){const o=btn.textContent;btn.textContent='No pending results';setTimeout(()=>{btn.textContent=o;},2500);}
     return;
   }
-  if(btn){btn.textContent='Checking\u2026';btn.disabled=true;}
-  let settledCount=0;
+  // Only query fixtures that could plausibly be finished: kickoff + 110
+  // minutes (90 + half-time + stoppage). Not-yet-played games were being
+  // sent to the API on every click, inflating batches — and any batch
+  // failure then dragged those dead ids through the per-ID fallback too.
+  const MIN_ELAPSED_MS=110*60*1000;
+  const nowMs=Date.now();
+  const checkable=pending.filter(e=>{
+    if(!e.ko)return true; // no kickoff stored — cannot judge, so check it
+    const t=Date.parse(e.ko);
+    return !isFinite(t)||(t+MIN_ELAPSED_MS)<nowMs;
+  });
+  if(!checkable.length){
+    if(btn){btn.textContent='No finished games yet';setTimeout(()=>{renderAccuracyTracker();},2500);}
+    return;
+  }
+  if(btn){btn.textContent='Checking\u2026 0/'+checkable.length;btn.disabled=true;}
+  let settledCount=0,removedCount=0,processed=0,changed=false,lastErr=null;
   const FINISHED=new Set(['FT','AET','PEN']);
+  // Fixtures that will never produce a real 90-minute score. Correct-score
+  // markets void these, and leaving them pending meant they were re-queried
+  // on every click, forever, while the pending pool only grew. The entry is
+  // removed entirely so no stat denominator is polluted. (Postponed games
+  // are deliberately NOT here — API-Football keeps the same fixture id and
+  // assigns a new date, so we refresh entry.ko below and the eligibility
+  // filter re-checks them automatically once the replay has happened.)
+  const VOID_STATUSES=new Set(['CANC','ABD','AWD','WO']);
+  const tick=()=>{if(btn)btn.textContent='Checking\u2026 '+processed+'/'+checkable.length;};
   const settleFromFixture=(fx)=>{
     const st=fx.fixture&&fx.fixture.status&&fx.fixture.status.short;
     if(!FINISHED.has(st))return false;
@@ -3441,14 +3480,30 @@ async function fetchPendingResults(){
     entry.pick=pick;
     return true;
   };
+  const handleFixture=(fx)=>{
+    if(!fx||!fx.fixture)return;
+    const st=fx.fixture.status&&fx.fixture.status.short;
+    const entry=accEntries.find(e=>e.fixtureId===fx.fixture.id);
+    if(!entry||entry.actual)return;
+    if(FINISHED.has(st)){
+      if(settleFromFixture(fx)){settledCount++;changed=true;}
+    }else if(VOID_STATUSES.has(st)){
+      entry._remove=true;removedCount++;changed=true;
+    }else if(fx.fixture.date&&entry.ko!==fx.fixture.date){
+      // Postponed/rescheduled: same fixture id, new date — store it so the
+      // eligibility filter defers this game until after the replay.
+      entry.ko=fx.fixture.date;changed=true;
+    }
+  };
   try{
-    const ids=pending.map(e=>e.fixtureId);
+    const ids=checkable.map(e=>e.fixtureId);
     for(let i=0;i<ids.length;i+=20){
       const batch=ids.slice(i,i+20);
       let res=null;
-      try{res=await afFetch('/fixtures?ids='+batch.join('-'));}catch(e){res=null;}
+      try{res=await afFetch('/fixtures?ids='+batch.join('-'));}catch(e){lastErr=e;res=null;}
       if(res&&Array.isArray(res.response)&&res.response.length>0){
-        for(const fx of res.response){if(settleFromFixture(fx))settledCount++;}
+        for(const fx of res.response)handleFixture(fx);
+        processed+=batch.length;tick();
       } else {
         // Fallback: the batched ids parameter returned nothing — fetch each
         // fixture individually via the singular id parameter, which is
@@ -3459,19 +3514,32 @@ async function fetchPendingResults(){
           try{
             const single=await afFetch('/fixtures?id='+fid);
             const fx=single&&single.response&&single.response[0];
-            if(fx&&settleFromFixture(fx))settledCount++;
-          }catch(e){/* leave pending */}
+            if(fx)handleFixture(fx);
+          }catch(e){lastErr=e;/* leave pending */}
+          processed++;tick();
         }
       }
     }
-  }catch(e){/* whatever settled so far still gets saved */}
-  if(settledCount>0)await saveAllAccuracyEntries(accEntries);
-  if(btn){
-    btn.disabled=false;
-    btn.textContent=settledCount>0?('\u2713 '+settledCount+' settled'):'No finished games yet';
-    setTimeout(()=>{renderAccuracyTracker();},2500);
+    if(changed){
+      if(removedCount>0)accEntries=accEntries.filter(e=>!e._remove);
+      // 10s cap so a stalled KV write can never wedge the button. The
+      // localStorage mirror inside saveAllAccuracyEntries keeps a local
+      // copy either way, and the next successful save re-syncs the Worker.
+      await withTimeout(saveAllAccuracyEntries(accEntries),10000).catch(e=>{lastErr=e;});
+    }
+  }catch(e){lastErr=e;/* whatever settled so far is kept in memory */}
+  finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent=settledCount>0
+        ?('\u2713 '+settledCount+' settled'+(removedCount>0?' \u00b7 '+removedCount+' void removed':''))
+        :(removedCount>0?('\u2713 '+removedCount+' void removed')
+        :(lastErr?'Check failed \u2014 see console':'No finished games yet'));
+      setTimeout(()=>{renderAccuracyTracker();},2500);
+    }
+    if(lastErr)console.warn('fetchPendingResults:',lastErr&&lastErr.message?lastErr.message:lastErr);
+    renderAccuracyTracker();
   }
-  renderAccuracyTracker();
 }
 
 async function clearAccuracyLog(){
@@ -3530,7 +3598,7 @@ async function renderAccuracyTracker(){
 
   // Keep the fetch-results button label showing how many are waiting
   const frBtn=document.getElementById('fetchResultsBtn');
-  if(frBtn&&!frBtn.disabled&&!frBtn.textContent.includes('settled')&&!frBtn.textContent.includes('No ')){
+  if(frBtn&&!frBtn.disabled&&!frBtn.textContent.includes('settled')&&!frBtn.textContent.includes('No ')&&!frBtn.textContent.includes('void')&&!frBtn.textContent.includes('failed')){
     frBtn.textContent='\u27f3 Fetch results'+(allPendingCount?' ('+allPendingCount+')':'');
   }
 
